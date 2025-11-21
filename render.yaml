@@ -1,0 +1,5 @@
+services:
+  - type: web
+    name: vrmol
+    env: docker
+    plan: free

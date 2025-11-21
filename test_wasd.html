@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>VRmol WASD Controls Test</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+  <style>
+    body { margin: 0; overflow: hidden; }
+    #info {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background-color: rgba(0,0,0,0.7);
+      color: white;
+      padding: 10px;
+      font-family: Arial, sans-serif;
+      z-index: 100;
+    }
+    #controls {
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
+      background-color: rgba(0,0,0,0.7);
+      color: white;
+      padding: 10px;
+      font-family: Arial, sans-serif;
+      z-index: 100;
+    }
+  </style>
+  <script type="text/javascript" src="js/libs/three.js"></script>
+  <script type="text/javascript" src="js/xr/OrbitControls.js"></script>
+  <script type="text/javascript" src="libs/w3m.js"></script>
+  <script>
+    // Initialize minimal PDB object for navigation.js
+    var PDB = {
+      mode: 0, // MODE_THREE
+      MODE_THREE: 0,
+      MODE_VR: 1
+    };
+  </script>
+  <script type="text/javascript" src="libs/navigation.js?v=1"></script>
+</head>
+<body>
+  <div id="info">
+    <h2>VRmol WASD Controls Test</h2>
+    <p>Testing WASD controls and collision detection</p>
+    <div id="status">Status: Initializing...</div>
+    <div id="instructions">
+      <h3>Controls:</h3>
+      <ul>
+        <li>WASD - Move around</li>
+        <li>Mouse - Look around</li>
+        <li>Shift - Run (faster movement)</li>
+        <li>Ctrl - Slow movement</li>
+        <li>N - Toggle navigation mode</li>
+      </ul>
+    </div>
+  </div>
+  <div id="controls">
+    <button id="toggleNav">Toggle WASD Navigation</button>
+  </div>
+
+  <script>
+    // Basic Three.js setup
+    let scene, camera, renderer;
+    let orbitControls;
+    let clock = new THREE.Clock();
+    
+    // Initialize the scene
+    function init() {
+      // Create scene
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x87CEEB);
+      
+      // Create camera
+      camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+      camera.position.set(0, 2, 10);
+      
+      // Create renderer
+      renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      document.body.appendChild(renderer.domElement);
+      
+      // Create orbit controls
+      orbitControls = new THREE.OrbitControls(camera, renderer.domElement);
+      orbitControls.enableDamping = true;
+      orbitControls.dampingFactor = 0.05;
+      
+      // Set camera rotation order for proper first-person controls
+      camera.rotation.order = 'YXZ';
+      
+      // Add lights
+      const ambientLight = new THREE.AmbientLight(0x404040);
+      scene.add(ambientLight);
+      
+      const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+      directionalLight.position.set(1, 1, 1);
+      scene.add(directionalLight);
+      
+      // Add a grid for reference
+      const gridHelper = new THREE.GridHelper(20, 20);
+      scene.add(gridHelper);
+      
+      // Create a simple test environment
+      createTestEnvironment();
+      
+      // Add event listeners
+      window.addEventListener('resize', onWindowResize, false);
+      document.getElementById('toggleNav').addEventListener('click', toggleNavigation);
+      
+      // Add keyboard shortcut for navigation toggle (N key)
+      document.addEventListener('keydown', function(event) {
+        if (event.key === 'n' || event.key === 'N') {
+          toggleNavigation();
+        }
+      });
+      
+      // Start animation loop
+      animate();
+      
+      // Update status
+      document.getElementById('status').textContent = 'Status: Ready - Use WASD to move, mouse to look';
+    }
+    
+    // Create a simple test environment with obstacles
+    function createTestEnvironment() {
+      // Create a floor
+      const floorGeometry = new THREE.PlaneGeometry(20, 20);
+      const floorMaterial = new THREE.MeshStandardMaterial({ color: 0x808080 });
+      const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+      floor.rotation.x = -Math.PI / 2;
+      floor.position.y = -0.5;
+      scene.add(floor);
+      
+      // Create some obstacles (cubes)
+      const cubeGeometry = new THREE.BoxGeometry(2, 2, 2);
+      const cubeMaterial = new THREE.MeshStandardMaterial({ color: 0xff0000 });
+      
+      // Add several cubes as obstacles
+      for (let i = 0; i < 5; i++) {
+        const cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
+        cube.position.set(
+          Math.random() * 16 - 8,
+          0.5,
+          Math.random() * 16 - 8
+        );
+        scene.add(cube);
+        
+        // Add to PDB.navigation.colliders for collision detection
+        if (!PDB.navigation.colliders) {
+          PDB.navigation.colliders = [];
+        }
+        PDB.navigation.colliders.push(cube);
+      }
+      
+      // Create a bounding box
+      const boxGeometry = new THREE.BoxGeometry(20, 10, 20);
+      const boxMaterial = new THREE.MeshBasicMaterial({
+        color: 0x00ff00,
+        wireframe: true,
+        transparent: true,
+        opacity: 0.3,
+        visible: false // Hidden by default
+      });
+      
+      const boundingBox = new THREE.Mesh(boxGeometry, boxMaterial);
+      boundingBox.position.y = 5;
+      scene.add(boundingBox);
+      
+      // Set up PDB.navigation for testing
+      PDB.navigation.boundingBox = boundingBox;
+      PDB.navigation.boundingBoxSize = 20;
+      PDB.navigation.collisionDistance = 1;
+      PDB.navigation.clock = clock;
+    }
+    
+    // Toggle navigation mode
+    function toggleNavigation() {
+      if (PDB.navigation.enabled) {
+        // Disable navigation
+        PDB.navigation.disable();
+        orbitControls.enabled = true;
+        document.getElementById('status').textContent = 'Status: Orbit Controls Enabled';
+      } else {
+        // Enable navigation
+        orbitControls.enabled = false;
+        PDB.navigation.enable();
+        document.getElementById('status').textContent = 'Status: WASD Navigation Enabled - Use WASD to move, mouse to look';
+      }
+    }
+    
+    // Handle window resize
+    function onWindowResize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+    
+    // Animation loop
+    function animate() {
+      requestAnimationFrame(animate);
+      
+      const delta = clock.getDelta();
+      
+      // Update navigation if enabled
+      if (PDB.navigation.enabled) {
+        PDB.navigation.update();
+      } else {
+        // Update orbit controls
+        orbitControls.update();
+      }
+      
+      // Render scene
+      renderer.render(scene, camera);
+    }
+    
+    // Initialize the application
+    init();
+  </script>
+</body>
+</html>
