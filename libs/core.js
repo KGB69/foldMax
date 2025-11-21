@@ -6,17 +6,7 @@ var PDB;
 var ServerType = 2;
 
 var SERVERURL = window.location.origin;
-if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
-  SERVERURL = "http://localhost:8080/vrmol";
-}
-
-// Override for specific ServerTypes if needed, but default to current origin for deployment
-if (ServerType === 2 && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")) {
-  // Only use vrmol.net if explicitly requested AND running locally (dev mode)
-  // Otherwise, on Render, we want to use the Render URL
-  SERVERURL = "https://vrmol.net";
-}
-var API_URL = "https://vrmol.life.tsinghua.edu.cn";
+var API_URL = window.location.origin;
 var API_URL_EMMAP = "server/api_em.php?pdbid=";
 var API_SPEECH = "server/speech/service.php"
 PDB = {
