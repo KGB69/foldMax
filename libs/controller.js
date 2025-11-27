@@ -10,7 +10,7 @@ PDB.controller = {
   //    document.body.appendChild(WEBVR.getMessageContainer(message));
   //  });
   //},
-  init: function() {
+  init: function () {
     // this.webvr();
     this.createMenu();
     if (PDB.mode === PDB.MODE_VR) {
@@ -19,11 +19,11 @@ PDB.controller = {
       PDB.render.init();
     }
   },
-  createMenu: function() {
+  createMenu: function () {
     var scope = this;
     //switch Mode of show on big Structure
     var c_isLow = document.getElementById("isLow");
-    c_isLow.addEventListener('click', function(e) {
+    c_isLow.addEventListener('click', function (e) {
       //PDB.render.changeToThreeMode(PDB.MODE_THREE,false);
       //console.log(this.checked);
       if (this.checked) {
@@ -41,7 +41,7 @@ PDB.controller = {
     //search button
     var b_search = document.getElementById("search_button");
 
-    b_search.addEventListener('click', function() {
+    b_search.addEventListener('click', function () {
       var input = document.getElementById("search_text");
       if (input.value.length === 0) {
         input.value = PDB.pdbId;
@@ -56,7 +56,7 @@ PDB.controller = {
     // var threeWithTravel = document.getElementById("threeWithTravel");
     //var vrWithTravel = document.getElementById("vrWithTravel");
 
-    threeMode.addEventListener('click', function(e) {
+    threeMode.addEventListener('click', function (e) {
       vrMode.style.display = "none";
       //PDB.render.changeToThreeMode(PDB.MODE_THREE,false);
       window.location.href = "index.html?vmode=nonvr";
@@ -69,110 +69,114 @@ PDB.controller = {
     // PDB.painter.showResidueByThreeTravel();
 
     // });
-      document.addEventListener("mouseup", (event) => {
-// <<<<<<< HEAD
-	  if ( raycasterFor3 !==undefined && 'setFromCamer' in raycasterFor3 ){
-              raycasterFor3.setFromCamera(mouse, camera);
-	  } else{
-	      return ;
-	  }
-// =======
-// 	  if (raycasterFor3===undefined){
-// 	      return ;
-// 	  }
-// 	  if('setFromCamera' in raycasterFor3){
-// 	      var aaa= '';
-// 	  }else{
-// 	      return ;
-// 	  }
-//           raycasterFor3.setFromCamera(mouse, camera);
-// >>>>>>> 021096b14333ad374cf48e554e88c266a509806e
-          var allObjs = [];
-          var groupMain = PDB.GROUP[PDB.GROUP_STRUCTURE_INDEX[PDB.GROUP_MAIN]];
-          var groupHet = PDB.GROUP[PDB.GROUP_HET];
-          var groupMutation = PDB.GROUP[PDB.GROUP_MUTATION];
-          if (groupMain != undefined && groupMain.children != undefined && groupMain.children.length > 0) {
-              for (var i = 0; i < groupMain.children.length; i++) {
-                  allObjs.push(groupMain.children[i]);
-              }
+    document.addEventListener("mouseup", (event) => {
+      // <<<<<<< HEAD
+      if (raycasterFor3 !== undefined && 'setFromCamer' in raycasterFor3) {
+        raycasterFor3.setFromCamera(mouse, camera);
+      } else {
+        return;
+      }
+      // =======
+      // 	  if (raycasterFor3===undefined){
+      // 	      return ;
+      // 	  }
+      // 	  if('setFromCamera' in raycasterFor3){
+      // 	      var aaa= '';
+      // 	  }else{
+      // 	      return ;
+      // 	  }
+      //           raycasterFor3.setFromCamera(mouse, camera);
+      // >>>>>>> 021096b14333ad374cf48e554e88c266a509806e
+      var allObjs = [];
+      var groupMain = PDB.GROUP[PDB.GROUP_STRUCTURE_INDEX[PDB.GROUP_MAIN]];
+      var groupHet = PDB.GROUP[PDB.GROUP_HET];
+      var groupMutation = PDB.GROUP[PDB.GROUP_MUTATION];
+      if (groupMain != undefined && groupMain.children != undefined && groupMain.children.length > 0) {
+        for (var i = 0; i < groupMain.children.length; i++) {
+          allObjs.push(groupMain.children[i]);
+        }
+      }
+      if (groupHet != undefined && groupHet.children != undefined && groupHet.children.length > 0) {
+        for (var i = 0; i < groupHet.children.length; i++) {
+          allObjs.push(groupHet.children[i]);
+        }
+      }
+      if (groupMutation != undefined && groupMutation.children != undefined && groupMutation.children.length > 0) {
+        for (var i = 0; i < groupMutation.children.length; i++) {
+          allObjs.push(groupMutation.children[i]);
+        }
+      }
+      var intersects = raycasterFor3.intersectObjects(allObjs);
+      if (intersects.length > 0) {
+        var INTERSECTED = intersects[0].object;
+        if (PDB.SELECTION_ATOM && PDB.trigger === PDB.TRIGGER_EVENT_DISTANCE) {
+          var atom = INTERSECTED.userData.presentAtom;
+          atom["pos_curr"] = atom.pos_centered;
+          if (PDB.distanceArray.length > 0) {
+            if (!PDB.tool.equalAtom(PDB.distanceArray[PDB.distanceArray.length - 1], atom)) {
+              PDB.distanceArray.push(atom);
+            }
+          } else {
+            PDB.distanceArray.push(atom);
           }
-          if (groupHet != undefined && groupHet.children != undefined && groupHet.children.length > 0) {
-              for (var i = 0; i < groupHet.children.length; i++) {
-                  allObjs.push(groupHet.children[i]);
-              }
-          }
-          if (groupMutation != undefined && groupMutation.children != undefined && groupMutation.children.length > 0) {
-              for (var i = 0; i < groupMutation.children.length; i++) {
-                  allObjs.push(groupMutation.children[i]);
-              }
-          }
-          var intersects = raycasterFor3.intersectObjects(allObjs);
-          if(intersects.length > 0 ){
-              var INTERSECTED = intersects[0].object;
-              if (PDB.SELECTION_ATOM && PDB.trigger === PDB.TRIGGER_EVENT_DISTANCE) {
-                  var atom = INTERSECTED.userData.presentAtom;
-                  atom["pos_curr"] = atom.pos_centered;
-                  if (PDB.distanceArray.length > 0) {
-                      if (!PDB.tool.equalAtom(PDB.distanceArray[PDB.distanceArray.length - 1], atom)) {
-                          PDB.distanceArray.push(atom);
-                      }
-                  } else {
-                      PDB.distanceArray.push(atom);
-                  }
 
-                  if (PDB.distanceArray.length === 2) {
-                      var locationStart = PDB.distanceArray[0];
-                      var locationEnd = PDB.distanceArray[1];
-                      PDB.painter.showDistance(locationStart, locationEnd);
-                      PDB.distanceArray = [];
-                  }
-              }else if(PDB.SELECTION_ATOM &&  PDB.trigger === PDB.TRIGGER_EVENT_ANGLE){
-                  var atom = INTERSECTED.userData.presentAtom;
-                  atom["pos_curr"] = atom.pos_centered;
-                  if (PDB.distanceArray.length > 0) {
-                      if (!PDB.tool.equalAtom(PDB.distanceArray[PDB.distanceArray.length - 1], atom)) {
-                          PDB.distanceArray.push(atom);
-                      }
-                  } else {
-                      PDB.distanceArray.push(atom);
-                  }
-
-                  if (PDB.distanceArray.length === 2) {
-                      var locationStart = PDB.distanceArray[0];
-                      var locationEnd = PDB.distanceArray[1];
-                      PDB.painter.showDistance(locationStart, locationEnd);
-                  } else if (PDB.distanceArray.length === 3) {
-                      var locationStart = PDB.distanceArray[1];
-                      var locationEnd = PDB.distanceArray[2];
-                      PDB.painter.showDistance(locationStart, locationEnd);
-                      var anglePoint = locationStart;
-                      var edgePoint1 = PDB.distanceArray[0];
-                      var edgePoint2 = locationEnd;
-                      var anglePointPos = [anglePoint.pos_curr.x, anglePoint.pos_curr.y, anglePoint.pos_curr.z];
-                      var edgePoint1Pos = [edgePoint1.pos_curr.x, edgePoint1.pos_curr.y, edgePoint1.pos_curr.z];
-                      var edgePoint2Pos = [edgePoint2.pos_curr.x, edgePoint2.pos_curr.y, edgePoint2.pos_curr.z];
-                      var ms = PDB.tool.getAngleMeasurement(anglePointPos, edgePoint1Pos, edgePoint2Pos);
-                      var labelPos = locationStart.pos_curr;
-                      PDB.drawer.drawTextForDistanceByDesktop(PDB.GROUP_MAIN, labelPos,
-                          ms.result, "", anglePoint.color, 180);
-						  PDB.tool.showInfoMeaPanel(true,ms.result);
-                      PDB.distanceArray = [];
-                  }
-              }
+          if (PDB.distanceArray.length === 2) {
+            var locationStart = PDB.distanceArray[0];
+            var locationEnd = PDB.distanceArray[1];
+            PDB.painter.showDistance(locationStart, locationEnd);
+            PDB.distanceArray = [];
           }
+        } else if (PDB.SELECTION_ATOM && PDB.trigger === PDB.TRIGGER_EVENT_ANGLE) {
+          var atom = INTERSECTED.userData.presentAtom;
+          atom["pos_curr"] = atom.pos_centered;
+          if (PDB.distanceArray.length > 0) {
+            if (!PDB.tool.equalAtom(PDB.distanceArray[PDB.distanceArray.length - 1], atom)) {
+              PDB.distanceArray.push(atom);
+            }
+          } else {
+            PDB.distanceArray.push(atom);
+          }
+
+          if (PDB.distanceArray.length === 2) {
+            var locationStart = PDB.distanceArray[0];
+            var locationEnd = PDB.distanceArray[1];
+            PDB.painter.showDistance(locationStart, locationEnd);
+          } else if (PDB.distanceArray.length === 3) {
+            var locationStart = PDB.distanceArray[1];
+            var locationEnd = PDB.distanceArray[2];
+            PDB.painter.showDistance(locationStart, locationEnd);
+            var anglePoint = locationStart;
+            var edgePoint1 = PDB.distanceArray[0];
+            var edgePoint2 = locationEnd;
+            var anglePointPos = [anglePoint.pos_curr.x, anglePoint.pos_curr.y, anglePoint.pos_curr.z];
+            var edgePoint1Pos = [edgePoint1.pos_curr.x, edgePoint1.pos_curr.y, edgePoint1.pos_curr.z];
+            var edgePoint2Pos = [edgePoint2.pos_curr.x, edgePoint2.pos_curr.y, edgePoint2.pos_curr.z];
+            var ms = PDB.tool.getAngleMeasurement(anglePointPos, edgePoint1Pos, edgePoint2Pos);
+            var labelPos = locationStart.pos_curr;
+            PDB.drawer.drawTextForDistanceByDesktop(PDB.GROUP_MAIN, labelPos,
+              ms.result, "", anglePoint.color, 180);
+            PDB.tool.showInfoMeaPanel(true, ms.result);
+            PDB.distanceArray = [];
+          }
+        }
+      }
+    });
+
+    if (vrMode) {
+      vrMode.addEventListener('click', function (e) {
+        this.style.display = "none";
+        //PDB.render.changeToVrMode(PDB.MODE_VR,false);
+        window.location.href = "index.html?vmode=vr";
+        //document.querySelector("#vrMode").checked=true;
+        //document.querySelector("#vrMode").checked=true;
       });
-
-    vrMode.addEventListener('click', function(e) {
-      this.style.display = "none";
-      //PDB.render.changeToVrMode(PDB.MODE_VR,false);
-      window.location.href = "index.html?vmode=vr";
-      //document.querySelector("#vrMode").checked=true;
-      //document.querySelector("#vrMode").checked=true;
-    });
-    vrMode2.addEventListener('click', function(e) {
-      this.style.display = "none";
-      window.location.href = "index.html?vmode=vr";
-    });
+    }
+    if (vrMode2) {
+      vrMode2.addEventListener('click', function (e) {
+        this.style.display = "none";
+        window.location.href = "index.html?vmode=vr";
+      });
+    }
 
     //vrWithTravel.addEventListener('click', function(e) {
     //  PDB.render.changeToVrMode(PDB.MODE_TRAVEL_VR, true);
@@ -184,11 +188,11 @@ PDB.controller = {
     //upload button
     var b_upload = document.getElementById("upload_button");
 
-    b_upload.addEventListener('change', function() {
+    b_upload.addEventListener('change', function () {
       if (this.files.length > 0) {
         var file = this.files[0];
         if (file.name.endsWith("gz")) {
-          w3m.file.getArrayBuffer(file, function(response) {
+          w3m.file.getArrayBuffer(file, function (response) {
             var mapId = file.name.split(".")[0];
             //var url = API_URL + "/server/api.php?taskid=13&pdbid=" + PDB.pdbId.toUpperCase();
             var url = API_URL_EMMAP + PDB.pdbId.toUpperCase();
@@ -196,7 +200,7 @@ PDB.controller = {
               url = SERVERURL + "/data/map01.json";
             }
 
-            PDB.tool.ajax.get(url, function(text) {
+            PDB.tool.ajax.get(url, function (text) {
               //PDB.render.clear(2);
               PDB.MATERIALLIST = [];
               if (PDB.MATERIALLIST.length == 0) {
@@ -216,7 +220,7 @@ PDB.controller = {
               }
               var jsonObj = JSON.parse(text);
               if (jsonObj.code === 1 && jsonObj.data !== undefined) {
-                PDB.controller.emmapLoadFromFile(response, "gz", function(emmap) {
+                PDB.controller.emmapLoadFromFile(response, "gz", function (emmap) {
                   PDB.tool.createDensityMapPanel(jsonObj);
                   var dimension = document.getElementById("dimension");
                   PDB.DIMENSION = Number(dimension.value);
@@ -257,9 +261,9 @@ PDB.controller = {
             })
           })
         } else if (file.name.endsWith("mrc")) {
-          w3m.file.getArrayBuffer(file, function(response) {
+          w3m.file.getArrayBuffer(file, function (response) {
             var mapId = file.name.split(".")[0];
-            PDB.controller.emmapLoadFromFile(response, "mrc", function(emmap) {
+            PDB.controller.emmapLoadFromFile(response, "mrc", function (emmap) {
               PDB.render.clearGroupIndex(PDB.GROUP_MAIN);
               PDB.render.clear(2);
               PDB.EMMAP.TYPE = 0;
@@ -282,7 +286,7 @@ PDB.controller = {
           PDB.CHANGESTYLE = 0; //切换mode，放弃fragment
           scope.clear(2, -1);
           PDB.loader.clear();
-          PDB.loader.loadFromDisk(file, function() {
+          PDB.loader.loadFromDisk(file, function () {
             var input = document.getElementById("search_text");
             input.value = PDB.pdbId;
             scope.drawGeometry(PDB.config.mainMode);
@@ -308,7 +312,7 @@ PDB.controller = {
 
     var b_showWater = document.getElementById("showWater");
 
-    b_showWater.addEventListener('click', function(e) {
+    b_showWater.addEventListener('click', function (e) {
       if (e.target.checked) {
         PDB.isShowWater = true;
       } else {
@@ -320,7 +324,7 @@ PDB.controller = {
 
     var b_showAxis = document.getElementById("showAxis");
 
-    b_showAxis.addEventListener('click', function(e) {
+    b_showAxis.addEventListener('click', function (e) {
       if (e.target.checked) {
         PDB.tool.showAxis(true);
       } else {
@@ -330,14 +334,14 @@ PDB.controller = {
     //drugSurface
 
     var drugSurface = document.getElementById("drugSurface");
-    drugSurface.addEventListener('click', function(e) {
+    drugSurface.addEventListener('click', function (e) {
 
       if (e.target.checked) {
-		  PDB.tool.showSegmentholder(true);		
-		 setTimeout(function(e) {
-			 PDB.painter.showDrugSurface(PDB.config.selectedDrug);
-			PDB.tool.showSegmentholder(false, false);
-		  }, PDB.HOLDERTIME);
+        PDB.tool.showSegmentholder(true);
+        setTimeout(function (e) {
+          PDB.painter.showDrugSurface(PDB.config.selectedDrug);
+          PDB.tool.showSegmentholder(false, false);
+        }, PDB.HOLDERTIME);
       } else {
         PDB.render.clearGroupIndex(PDB.GROUP_SURFACE_HET);
       }
@@ -345,14 +349,14 @@ PDB.controller = {
 
 
     var loadDensityMap = document.getElementById("loadDensityMap");
-    loadDensityMap.addEventListener('click', function() {
+    loadDensityMap.addEventListener('click', function () {
       // var url = API_URL + "/server/api.php?taskid=13&pdbid=" + PDB.pdbId.toUpperCase();
       var url = API_URL_EMMAP + PDB.pdbId.toUpperCase();
       if (ServerType !== 2) {
         url = SERVERURL + "/data/map01.json";
       }
-	  PDB.tool.showSegmentholder(true);
-      PDB.tool.ajax.get(url, function(text) {
+      PDB.tool.showSegmentholder(true);
+      PDB.tool.ajax.get(url, function (text) {
         //PDB.render.clear(2);
         PDB.MATERIALLIST = [];
         if (PDB.MATERIALLIST.length == 0) {
@@ -378,7 +382,7 @@ PDB.controller = {
           if (PDB.DEBUG_MODE == 1) {
             mapserver = "map-local";
           }
-          scope.emmapLoad(PDB.EMMAP.FIRST_ID, mapserver, function(emmap) {
+          scope.emmapLoad(PDB.EMMAP.FIRST_ID, mapserver, function (emmap) {
             var middleSlice = Math.floor((PDB.EMMAP.MIN_SLICE + PDB.EMMAP.MAX_SLICE) / 2);
             // PDB.painter.showMapSurface(emmap,emmap.threshold,false);
             // PDB.render.clearStructure();
@@ -407,13 +411,13 @@ PDB.controller = {
             }
 
             PDB.tool.changeDensityMapRangeValue(emmap);
-			PDB.tool.showSegmentholder(false);
+            PDB.tool.showSegmentholder(false);
           })
         } else {
-		  PDB.tool.showSegmentholder(false);
+          PDB.tool.showSegmentholder(false);
           PDB.tool.printProgress(jsonObj.message);
         }
-		
+
       })
     });
 
@@ -440,13 +444,13 @@ PDB.controller = {
     var closeeditResidue = document.getElementById("closeeditResidue");
     var b_show_editResidue = document.getElementById("b_show_editResidue");
 
-    closeeditResidue.addEventListener('click', function() {
+    closeeditResidue.addEventListener('click', function () {
       //segmentholder.style.display = "none";
       PDB.tool.showSegmentholder(false);
       editResidue.style.display = "none";
     });
 
-    b_show_editResidue.addEventListener('click', function(e) {
+    b_show_editResidue.addEventListener('click', function (e) {
       //segmentholder.style.display = "block";
       PDB.tool.showSegmentholder(true);
       editResidue.style.display = "block";
@@ -454,7 +458,7 @@ PDB.controller = {
 
     var b_replace = document.getElementById("b_replace");
 
-    b_replace.addEventListener('click', function(e) {
+    b_replace.addEventListener('click', function (e) {
       PDB.GROUP_ONE_RES = PDB.GROUP_COUNT + 1;
 
       if (!PDB.GROUP[PDB.GROUP_ONE_RES]) {
@@ -577,7 +581,7 @@ PDB.controller = {
         PDB.GROUP[PDB.GROUP_ONE_RES].children = [];
         PDB.tool.updateAllEditResInfo(reReplaceAtom, sjpo, resName, resid, chain_replace.value);
       } else {
-        PDB.loader.loadResidue(resName, function() {
+        PDB.loader.loadResidue(resName, function () {
           //PDB.painter.showRes_Ball_Rod(resName);
           PDB.painter.showOneRes(representation, resName);
           //PDB.GROUP[groupa].add(PDB.GROUP[PDB.GROUP_ONE_RES]);
@@ -667,7 +671,7 @@ PDB.controller = {
       }
     });
 
-    b_hide.addEventListener('click', function(e) {
+    b_hide.addEventListener('click', function (e) {
       //console.log(e.target.innerText);
       if (e.target.innerText == 'Hide') {
         var residueData = w3m.mol[PDB.pdbId].residueData;
@@ -679,8 +683,8 @@ PDB.controller = {
         }
         PDB.GROUP[PDB.GROUP_HET].visible = false;
         PDB.render.hideStructure();
-        if(PDB.GROUP[PDB.GROUP_MAP].children.length > 0){
-            PDB.GROUP[PDB.GROUP_MAP].visible = true;
+        if (PDB.GROUP[PDB.GROUP_MAP].children.length > 0) {
+          PDB.GROUP[PDB.GROUP_MAP].visible = true;
         }
         e.target.innerText = 'Show';
       } else if (e.target.innerText == 'Show') {
@@ -696,67 +700,67 @@ PDB.controller = {
         e.target.innerText = 'Hide';
       }
     });
-    b_line.addEventListener('click', function() {
+    b_line.addEventListener('click', function () {
       //PDB.render.clear(5);
       PDB.config.mainMode = PDB.LINE;
       scope.refreshGeometryByMode(PDB.config.mainMode);
     });
-    b_dot.addEventListener('click', function() {
+    b_dot.addEventListener('click', function () {
       //PDB.render.clear(5);
       PDB.config.mainMode = PDB.DOT;
       scope.refreshGeometryByMode(PDB.config.mainMode);
     });
-    b_backbone.addEventListener('click', function() {
+    b_backbone.addEventListener('click', function () {
       //PDB.render.clear(5);
       PDB.config.mainMode = PDB.BACKBONE;
       scope.refreshGeometryByMode(PDB.config.mainMode);
     });
-    b_a.addEventListener('click', function() {
+    b_a.addEventListener('click', function () {
       //PDB.render.clear(5);
       PDB.config.mainMode = PDB.SPHERE;
       scope.refreshGeometryByMode(PDB.config.mainMode);
     });
-    b_b.addEventListener('click', function() {
+    b_b.addEventListener('click', function () {
       //PDB.render.clear(5);
       PDB.config.mainMode = PDB.STICK;
       scope.refreshGeometryByMode(PDB.config.mainMode);
     });
-    b_ab.addEventListener('click', function() {
+    b_ab.addEventListener('click', function () {
       //PDB.render.clear(5);
       PDB.config.mainMode = PDB.BALL_AND_ROD;
       scope.refreshGeometryByMode(PDB.config.mainMode);
     });
-    b_tube.addEventListener('click', function() {
+    b_tube.addEventListener('click', function () {
       //PDB.render.clear(5);
       PDB.config.mainMode = PDB.TUBE;
       scope.refreshGeometryByMode(PDB.config.mainMode);
     });
-    b_flat.addEventListener('click', function() {
+    b_flat.addEventListener('click', function () {
       //PDB.render.clear(5);
       PDB.config.mainMode = PDB.RIBBON_FLAT;
       scope.refreshGeometryByMode(PDB.config.mainMode);
     });
-    b_ellipse.addEventListener('click', function() {
+    b_ellipse.addEventListener('click', function () {
       //PDB.render.clear(5);
       PDB.config.mainMode = PDB.RIBBON_ELLIPSE;
       scope.refreshGeometryByMode(PDB.config.mainMode);
     });
-    b_rectangle.addEventListener('click', function() {
+    b_rectangle.addEventListener('click', function () {
       //PDB.render.clear(5);
       PDB.config.mainMode = PDB.RIBBON_RECTANGLE;
       scope.refreshGeometryByMode(PDB.config.mainMode);
     });
-    b_strip.addEventListener('click', function() {
+    b_strip.addEventListener('click', function () {
       //PDB.render.clear(5);
       PDB.config.mainMode = PDB.RIBBON_STRIP;
       scope.refreshGeometryByMode(PDB.config.mainMode);
     });
-    b_railway.addEventListener('click', function() {
+    b_railway.addEventListener('click', function () {
       //PDB.render.clear(5);
       PDB.config.mainMode = PDB.RIBBON_RAILWAY;
       scope.refreshGeometryByMode(PDB.config.mainMode);
     });
-    b_sse.addEventListener('click', function() {
+    b_sse.addEventListener('click', function () {
       //PDB.render.clear(5);
       PDB.config.mainMode = PDB.CARTOON_SSE;
       scope.refreshGeometryByMode(PDB.config.mainMode);
@@ -767,7 +771,7 @@ PDB.controller = {
     var h_sphere = document.getElementById("h_sphere");
     var h_stick = document.getElementById("h_stick");
     var h_ballrod = document.getElementById("h_ballrod");
-    h_hide.addEventListener('click', function(e) {
+    h_hide.addEventListener('click', function (e) {
       //console.log(e.target.innerText);
       if (e.target.innerText == 'Hide') {
         PDB.GROUP[PDB.GROUP_HET].visible = false;
@@ -777,22 +781,22 @@ PDB.controller = {
         e.target.innerText = 'Hide';
       }
     });
-    h_line.addEventListener('click', function() {
+    h_line.addEventListener('click', function () {
       PDB.render.clear(5);
       PDB.config.hetMode = PDB.HET_LINE;
       scope.refreshGeometryByMode(PDB.config.hetMode);
     });
-    h_sphere.addEventListener('click', function() {
+    h_sphere.addEventListener('click', function () {
       PDB.render.clear(5);
       PDB.config.hetMode = PDB.HET_SPHERE;
       scope.refreshGeometryByMode(PDB.config.hetMode);
     });
-    h_stick.addEventListener('click', function() {
+    h_stick.addEventListener('click', function () {
       PDB.render.clear(5);
       PDB.config.hetMode = PDB.HET_STICK;
       scope.refreshGeometryByMode(PDB.config.hetMode);
     });
-    h_ballrod.addEventListener('click', function() {
+    h_ballrod.addEventListener('click', function () {
       PDB.render.clear(5);
       PDB.config.hetMode = PDB.HET_BALL_ROD;
       scope.refreshGeometryByMode(PDB.config.hetMode);
@@ -804,27 +808,27 @@ PDB.controller = {
     var surfaceSA = document.getElementById("surfaceSA");
     var surfaceM = document.getElementById("surfaceM");
     var surfaceN = document.getElementById("surfaceN");
-    surfaceVDW.addEventListener('click', function() {
+    surfaceVDW.addEventListener('click', function () {
       PDB.render.clear(5);
       PDB.CHANGESTYLE = 0;
       scope.refreshSurface(PDB.config.surfaceMode, 1, PDB.SURFACE_OPACITY, PDB.SURFACE_WIREFRAME);
     });
-    surfaceSE.addEventListener('click', function() {
+    surfaceSE.addEventListener('click', function () {
       PDB.render.clear(5);
       PDB.CHANGESTYLE = 0;
       scope.refreshSurface(PDB.config.surfaceMode, 2, PDB.SURFACE_OPACITY, PDB.SURFACE_WIREFRAME);
     });
-    surfaceSA.addEventListener('click', function() {
+    surfaceSA.addEventListener('click', function () {
       PDB.render.clear(5);
       PDB.CHANGESTYLE = 0;
       scope.refreshSurface(PDB.config.surfaceMode, 3, PDB.SURFACE_OPACITY, PDB.SURFACE_WIREFRAME);
     });
-    surfaceM.addEventListener('click', function() {
+    surfaceM.addEventListener('click', function () {
       PDB.render.clear(5);
       PDB.CHANGESTYLE = 0;
       scope.refreshSurface(PDB.config.surfaceMode, 4, PDB.SURFACE_OPACITY, PDB.SURFACE_WIREFRAME);
     });
-    surfaceN.addEventListener('click', function(event) {
+    surfaceN.addEventListener('click', function (event) {
       PDB.render.clear(5);
       PDB.CHANGESTYLE = 0;
       PDB.SURFACE_TYPE = 0;
@@ -837,42 +841,42 @@ PDB.controller = {
     var surfaceOpacity4 = document.getElementById("surfaceOpacity4");
     var surfaceOpacity5 = document.getElementById("surfaceOpacity5");
     var surfaceOpacity6 = document.getElementById("surfaceOpacity6");
-    surfaceOpacity1.addEventListener('click', function() {
+    surfaceOpacity1.addEventListener('click', function () {
       var surfaceGroup = PDB.GROUP[PDB.GROUP_SURFACE];
       if (surfaceGroup === undefined || (surfaceGroup !== undefined && surfaceGroup.children.length === 0)) {
         return;
       }
       scope.refreshSurface(PDB.config.surfaceMode, PDB.SURFACE_TYPE, 1.0, PDB.SURFACE_WIREFRAME);
     });
-    surfaceOpacity2.addEventListener('click', function() {
+    surfaceOpacity2.addEventListener('click', function () {
       var surfaceGroup = PDB.GROUP[PDB.GROUP_SURFACE];
       if (surfaceGroup === undefined || (surfaceGroup !== undefined && surfaceGroup.children.length === 0)) {
         return;
       }
       scope.refreshSurface(PDB.config.surfaceMode, PDB.SURFACE_TYPE, 0.9, PDB.SURFACE_WIREFRAME);
     });
-    surfaceOpacity3.addEventListener('click', function() {
+    surfaceOpacity3.addEventListener('click', function () {
       var surfaceGroup = PDB.GROUP[PDB.GROUP_SURFACE];
       if (surfaceGroup === undefined || (surfaceGroup !== undefined && surfaceGroup.children.length === 0)) {
         return;
       }
       scope.refreshSurface(PDB.config.surfaceMode, PDB.SURFACE_TYPE, 0.8, PDB.SURFACE_WIREFRAME);
     });
-    surfaceOpacity4.addEventListener('click', function() {
+    surfaceOpacity4.addEventListener('click', function () {
       var surfaceGroup = PDB.GROUP[PDB.GROUP_SURFACE];
       if (surfaceGroup === undefined || (surfaceGroup !== undefined && surfaceGroup.children.length === 0)) {
         return;
       }
       scope.refreshSurface(PDB.config.surfaceMode, PDB.SURFACE_TYPE, 0.7, PDB.SURFACE_WIREFRAME);
     });
-    surfaceOpacity5.addEventListener('click', function() {
+    surfaceOpacity5.addEventListener('click', function () {
       var surfaceGroup = PDB.GROUP[PDB.GROUP_SURFACE];
       if (surfaceGroup === undefined || (surfaceGroup !== undefined && surfaceGroup.children.length === 0)) {
         return;
       }
       scope.refreshSurface(PDB.config.surfaceMode, PDB.SURFACE_TYPE, 0.6, PDB.SURFACE_WIREFRAME);
     });
-    surfaceOpacity6.addEventListener('click', function() {
+    surfaceOpacity6.addEventListener('click', function () {
       var surfaceGroup = PDB.GROUP[PDB.GROUP_SURFACE];
       if (surfaceGroup === undefined || (surfaceGroup !== undefined && surfaceGroup.children.length === 0)) {
         return;
@@ -882,7 +886,7 @@ PDB.controller = {
 
 
     var wireFrame = document.getElementById("wireFrame");
-    wireFrame.addEventListener('click', function(event) {
+    wireFrame.addEventListener('click', function (event) {
       var surfaceGroup = PDB.GROUP[PDB.GROUP_SURFACE];
       if (surfaceGroup === undefined || (surfaceGroup !== undefined && surfaceGroup.children.length === 0)) {
         return;
@@ -900,7 +904,7 @@ PDB.controller = {
     var selChain = document.getElementById("selChain");
     var selAtom = document.getElementById("selAtom");
     var selResidue = document.getElementById("selResidue");
-    selModel.addEventListener('click', function() {
+    selModel.addEventListener('click', function () {
       PDB.label_type = PDB.SELECTION_MODEL;
     });
     // selMainHet.addEventListener( 'click', function() {
@@ -912,19 +916,19 @@ PDB.controller = {
     // selHet.addEventListener( 'click', function() {
     //     PDB.selection_mode = PDB.SELECTION_HET;
     // } );
-    selChain.addEventListener('click', function() {
+    selChain.addEventListener('click', function () {
       PDB.label_type = PDB.SELECTION_CHAIN;
     });
-    selResidue.addEventListener('click', function() {
+    selResidue.addEventListener('click', function () {
       PDB.label_type = PDB.SELECTION_RESIDUE;
     });
-    selAtom.addEventListener('click', function() {
+    selAtom.addEventListener('click', function () {
       PDB.label_type = PDB.SELECTION_ATOM;
     });
     //=============================== EXPORT =======================
     //
     var b_export_scene = document.getElementById("b_export_scene");
-    b_export_scene.addEventListener('click', function() {
+    b_export_scene.addEventListener('click', function () {
       //console.log(document.getElementById( "exportType" ).value);
       PDB.render.exportToObj(document.getElementById("exportType").value);
       // worker.addEventListener('message', function(e) {
@@ -938,8 +942,8 @@ PDB.controller = {
       // worker.postMessage({'cmd': 'start', 'msg': 'Hi', 'filename':f,'data':result});
     });
     var b_export_pdb = document.getElementById("b_export_pdb");
-    b_export_pdb.addEventListener('click', function(e) {
-      w3m.ajax.get(PDB.pdbId, function(text) {
+    b_export_pdb.addEventListener('click', function (e) {
+      w3m.ajax.get(PDB.pdbId, function (text) {
         //w3m.tool.clear();
         PDB.exportPdb = true;
         w3m.config.rep_mode_main = PDB.config.mainMode;
@@ -953,80 +957,80 @@ PDB.controller = {
     var distance = document.getElementById("triggerDistance");
     var angle = document.getElementById("triggerAngle");
     var isHide = document.getElementById("isHide");
-    distance.addEventListener('click', function(e) {
+    distance.addEventListener('click', function (e) {
       PDB.selection_mode = PDB.SELECTION_ATOM;
       PDB.trigger = PDB.TRIGGER_EVENT_DISTANCE;
     });
 
-    angle.addEventListener('click', function(e) {
+    angle.addEventListener('click', function (e) {
       PDB.selection_mode = PDB.SELECTION_ATOM;
       PDB.trigger = PDB.TRIGGER_EVENT_ANGLE;
     });
 
-    isHide.addEventListener('click', function(e) {
+    isHide.addEventListener('click', function (e) {
       if (e.target.checked) {
         PDB.GROUP[PDB.GROUP_MAIN].visible = false;
-		PDB.tool.hideInfoMeaPanel(true);
+        PDB.tool.hideInfoMeaPanel(true);
       } else {
         PDB.GROUP[PDB.GROUP_MAIN].visible = true;
-		PDB.tool.hideInfoMeaPanel(false);
+        PDB.tool.hideInfoMeaPanel(false);
       }
     });
     //switch color  add color checkBox Listener ByClassName
     //switch color  add color checkBox Listener ByClassName
     var updateColorByElement = document.getElementById("updatecolor_ByElement");
-    updateColorByElement.addEventListener('click', function(e) {
+    updateColorByElement.addEventListener('click', function (e) {
       var color_mode = e.target.getAttribute('color_mode');
       scope.switchColorBymode(color_mode);
     });
     var updateColorByResidue = document.getElementById("updatecolor_ByResidue");
-    updateColorByResidue.addEventListener('click', function(e) {
+    updateColorByResidue.addEventListener('click', function (e) {
       var color_mode = e.target.getAttribute('color_mode');
       scope.switchColorBymode(color_mode);
     });
     var updateColorBySecondaryStructure = document.getElementById("updatecolor_BySecondaryStructure");
-    updateColorBySecondaryStructure.addEventListener('click', function(e) {
+    updateColorBySecondaryStructure.addEventListener('click', function (e) {
       var color_mode = e.target.getAttribute('color_mode');
       scope.switchColorBymode(color_mode);
     });
     var updateColorByChain = document.getElementById("updatecolor_ByChain");
-    updateColorByChain.addEventListener('click', function(e) {
+    updateColorByChain.addEventListener('click', function (e) {
       var color_mode = e.target.getAttribute('color_mode');
       scope.switchColorBymode(color_mode);
     });
     var updateColorByRepresentation = document.getElementById("updatecolor_ByRepresentation");
-    updateColorByRepresentation.addEventListener('click', function(e) {
+    updateColorByRepresentation.addEventListener('click', function (e) {
       var color_mode = e.target.getAttribute('color_mode');
       scope.switchColorBymode(color_mode);
     });
     var updateolorByB_Factor = document.getElementById("updatecolor_ByB_Factor");
-    updateolorByB_Factor.addEventListener('click', function(e) {
+    updateolorByB_Factor.addEventListener('click', function (e) {
       var color_mode = e.target.getAttribute('color_mode');
       scope.switchColorBymode(color_mode);
     });
     var updateColorBySpectrum = document.getElementById("updatecolor_BySpectrum");
-    updateColorBySpectrum.addEventListener('click', function(e) {
+    updateColorBySpectrum.addEventListener('click', function (e) {
       var color_mode = e.target.getAttribute('color_mode');
       scope.switchColorBymode(color_mode);
     });
     var updateColorByChainSpectrum = document.getElementById("updatecolor_ByChainSpectrum");
-    updateColorByChainSpectrum.addEventListener('click', function(e) {
+    updateColorByChainSpectrum.addEventListener('click', function (e) {
       var color_mode = e.target.getAttribute('color_mode');
       scope.switchColorBymode(color_mode);
     });
     var updateColorByHydrophobicity = document.getElementById("updatecolor_ByHydrophobicity");
-    updateColorByHydrophobicity.addEventListener('click', function(e) {
+    updateColorByHydrophobicity.addEventListener('click', function (e) {
       var color_mode = e.target.getAttribute('color_mode');
       scope.switchColorBymode(color_mode);
     });
     var updateColorByLoadConser = document.getElementById("b_load_conser");
-    updateColorByLoadConser.addEventListener('click', function(e) {
+    updateColorByLoadConser.addEventListener('click', function (e) {
       var chain = "A";
       var url = PDB.CONSERVATION_URL + "&pdbid=" + PDB.pdbId.toUpperCase() + "&chain=" + chain;
       if (ServerType != 2) {
         url = SERVERURL + "/data/conservation.json";
       }
-      PDB.tool.ajax.get(url, function(text) {
+      PDB.tool.ajax.get(url, function (text) {
         PDB.controller.clear(4, undefined);
         PDB.painter.showConservation(text);
         PDB.render.clearMain();
@@ -1050,25 +1054,25 @@ PDB.controller = {
     // dragMain.addEventListener( 'click', function() {
     //     PDB.selection_mode = PDB.SELECTION_MAIN;
     // } );
-    dragReset.addEventListener('click', function() {
+    dragReset.addEventListener('click', function () {
       PDB.tool.backToInitialPositonForDesktop();
     });
-    dragHet.addEventListener('click', function() {
+    dragHet.addEventListener('click', function () {
       PDB.controller.switchDragByMode(PDB.SELECTION_HET);
     });
-    dragChain.addEventListener('click', function() {
+    dragChain.addEventListener('click', function () {
       PDB.controller.switchDragByMode(PDB.SELECTION_CHAIN);
     });
 
-    document.getElementById("vrMode2").addEventListener("click", function() {
+    document.getElementById("vrMode2").addEventListener("click", function () {
       PDB.controller.switchMode(PDB.MODE_VR);
     });
 
-    document.getElementById("threeMode").addEventListener("click", function() {
+    document.getElementById("threeMode").addEventListener("click", function () {
       PDB.controller.switchMode(PDB.MODE_THREE);
     });
-    
-    document.getElementById("toggleNavigation").addEventListener("click", function() {
+
+    document.getElementById("toggleNavigation").addEventListener("click", function () {
       // Only enable in non-VR mode
       if (PDB.mode === PDB.MODE_THREE) {
         PDB.navigation.toggle();
@@ -1083,12 +1087,12 @@ PDB.controller = {
     var segmentPanel = document.getElementById("segmentPanel");
     var b_show_segmenpanel = document.getElementById("b_show_segmenpanel");
 
-    b_show_segmenpanel.addEventListener('click', function() {
+    b_show_segmenpanel.addEventListener('click', function () {
       //segmentholder.style.display = "block";
       PDB.tool.showSegmentholder(true);
       segmentPanel.style.display = "block";
     });
-    closer.addEventListener('click', function() {
+    closer.addEventListener('click', function () {
       PDB.tool.showSegmentholder(false);
       segmentPanel.style.display = "none";
     });
@@ -1102,48 +1106,48 @@ PDB.controller = {
     var dbSNP = document.getElementById("dbSNP");
     var showMutationTable = document.getElementById("showMutationTable");
 
-    mutationTCGA.addEventListener('click', function() {
+    mutationTCGA.addEventListener('click', function () {
       var url = PDB.MUTATION_URL + "&pdbid=" + PDB.pdbId.toUpperCase() + "&ds=tcga";
       if (PDB.DEBUG_MODE == 1) {
         url = SERVERURL + "/data/mutation.json";
       }
-      PDB.tool.ajax.get(url, function(text) {
+      PDB.tool.ajax.get(url, function (text) {
         PDB.controller.clear(4, undefined);
         PDB.painter.showMutation(text);
         PDB.tool.showMutationTable(PDB.showMutationTable, text);
       })
     });
-    mutationCCLE.addEventListener('click', function() {
+    mutationCCLE.addEventListener('click', function () {
       var url = PDB.MUTATION_URL + "&pdbid=" + PDB.pdbId.toUpperCase() + "&ds=ccle";
-      PDB.tool.ajax.get(url, function(text) {
+      PDB.tool.ajax.get(url, function (text) {
         PDB.controller.clear(4, undefined);
         PDB.painter.showMutation(text);
         PDB.tool.showMutationTable(PDB.showMutationTable, text);
       })
     });
-    mutationExAC.addEventListener('click', function() {
+    mutationExAC.addEventListener('click', function () {
       var url = PDB.MUTATION_URL + "&pdbid=" + PDB.pdbId.toUpperCase() + "&ds=exac";
-      PDB.tool.ajax.get(url, function(text) {
+      PDB.tool.ajax.get(url, function (text) {
         PDB.controller.clear(4, undefined);
         PDB.painter.showMutation(text);
         PDB.tool.showMutationTable(PDB.showMutationTable, text);
       })
     });
 
-    dbSNP.addEventListener('click', function() {
+    dbSNP.addEventListener('click', function () {
       var url = PDB.MUTATION_URL + "&pdbid=" + PDB.pdbId.toUpperCase() + "&ds=dbsnp";
-      PDB.tool.ajax.get(url, function(text) {
+      PDB.tool.ajax.get(url, function (text) {
         PDB.controller.clear(4, undefined);
         PDB.painter.showMutation(text);
         PDB.tool.showMutationTable(PDB.showMutationTable, text);
       })
     });
 
-    mutationNone.addEventListener('click', function() {
+    mutationNone.addEventListener('click', function () {
       PDB.controller.clear(4, undefined);
     });
     PDB.showMutationTable = true; //默认显示MutationTable
-    showMutationTable.addEventListener('click', function() {
+    showMutationTable.addEventListener('click', function () {
       if (this.checked) {
         document.getElementById("rightmenu").hidden = false;
         PDB.showMutationTable = true;
@@ -1159,15 +1163,15 @@ PDB.controller = {
     var rotationLeft = document.getElementById("rotationCounterclockwise");
     var rotationRight = document.getElementById("rotationClockwise");
 
-    rotationSwitch.addEventListener('click', function() {
+    rotationSwitch.addEventListener('click', function () {
       PDB.controller.cancelRotation();
     });
-    rotationLeft.addEventListener('click', function() {
+    rotationLeft.addEventListener('click', function () {
       var val = $('input[name="rotateAxis"]:checked').val();
       PDB.controller.cancelRotation();
       PDB.controller.startRotation(Number(val), 1);
     });
-    rotationRight.addEventListener('click', function() {
+    rotationRight.addEventListener('click', function () {
       var val = $('input[name="rotateAxis"]:checked').val();
       PDB.controller.cancelRotation();
       PDB.controller.startRotation(Number(val), 0);
@@ -1215,7 +1219,7 @@ PDB.controller = {
 
     // =============================== Drug Design =======================
     var showBoxHelper = document.getElementById("showBoxHelper");
-    showBoxHelper.addEventListener('click', function(e) {
+    showBoxHelper.addEventListener('click', function (e) {
       if (this.checked) {
         if (PDB.GROUP[PDB.GROUP_BOX_HELPER]) {
           PDB.GROUP[PDB.GROUP_BOX_HELPER].visible = true;
@@ -1239,7 +1243,7 @@ PDB.controller = {
 
     //hide drug
     var hideDrug = document.getElementById("hideDrug");
-    hideDrug.addEventListener('click', function(e) {
+    hideDrug.addEventListener('click', function (e) {
       if (this.checked) {
         PDB.GROUP[PDB.GROUP_DRUG].visible = false;
       } else {
@@ -1248,7 +1252,7 @@ PDB.controller = {
     });
 
     var hideDrugPanel = document.getElementById("hideDrugPanel");
-    hideDrugPanel.addEventListener('click', function(e) {
+    hideDrugPanel.addEventListener('click', function (e) {
       PDB.render.clear(6);
       // var url = API_URL + "/server/api.php?taskid=12&pdbid=" + PDB.pdbId.toUpperCase();
       // if (ServerType !== 2) {
@@ -1259,13 +1263,13 @@ PDB.controller = {
     });
 
     var b_load_drug = document.getElementById("b_load_drug");
-    b_load_drug.addEventListener('click', function() {
+    b_load_drug.addEventListener('click', function () {
 
       var url = API_URL + "/server/api.php?taskid=12&pdbid=" + PDB.pdbId.toUpperCase();
       if (ServerType !== 2) {
         url = SERVERURL + "/data/drug.json";
       }
-      PDB.tool.ajax.get(url, function(text) {
+      PDB.tool.ajax.get(url, function (text) {
         var jsonObj = JSON.parse(text);
 
         if (jsonObj.code === 1 && jsonObj.data !== undefined) {
@@ -1285,7 +1289,7 @@ PDB.controller = {
           $("#z_min").val(w3m.global.limit.z[0]);
           $("#z_max").val(w3m.global.limit.z[1]);
 
-          $(".xyz_min_max input").bind('change', function(e) {
+          $(".xyz_min_max input").bind('change', function (e) {
             if ($(this).val() != null && !isNaN(Number($(this).val()))) {
               var x_min = $("#x_min").val() == "" ? w3m.global.limit.x[0] : Number($("#x_min").val());
               var x_max = $("#x_max").val() == "" ? w3m.global.limit.x[1] : Number($("#x_max").val());
@@ -1345,34 +1349,34 @@ PDB.controller = {
           // get drug_id
           // var drug_id =  input =
           PDB.tool.generateTextBox(span, "drugbankid", "DB04464", 'textbox');
-          PDB.tool.generateButton(span, "Load", "Load", "rightLabelPDB").addEventListener('click', function() {
-			  
-            drugbankid = document.getElementById("drugbankid").value;
-			
-			var link_e = document.getElementById("link");
-			if(!link_e){
-				PDB.tool.generateDocklingLink(span, "link" , "Docking", drugbankid, "drugbank");
-				span.appendChild(document.createElement("br"));			
-				
-				var drugId = drugbankid;
-			  PDB.config.selectedDrug = drugId;
-			  PDB.loader.loadDrug(drugId, 'drugbank', function() {
-				w3m.mol[drugId].drug = true;
-				PDB.render.clearGroupIndex(PDB.GROUP_DRUG);
-				PDB.painter.showHet(drugId);
+          PDB.tool.generateButton(span, "Load", "Load", "rightLabelPDB").addEventListener('click', function () {
 
-				//====add the random migration path and scope
-				PDB.tool.generateDrugMigrationPath();
-				PDB.GROUP[PDB.GROUP_DRUG].visible = true;			
-				 PDB.render.clearGroupIndex(PDB.GROUP_SURFACE_HET);
-				 var drugSurface = document.getElementById("drugSurface");
-				 drugSurface.checked = false;
-				 
-			  });
-					
-				
-			}
-			
+            drugbankid = document.getElementById("drugbankid").value;
+
+            var link_e = document.getElementById("link");
+            if (!link_e) {
+              PDB.tool.generateDocklingLink(span, "link", "Docking", drugbankid, "drugbank");
+              span.appendChild(document.createElement("br"));
+
+              var drugId = drugbankid;
+              PDB.config.selectedDrug = drugId;
+              PDB.loader.loadDrug(drugId, 'drugbank', function () {
+                w3m.mol[drugId].drug = true;
+                PDB.render.clearGroupIndex(PDB.GROUP_DRUG);
+                PDB.painter.showHet(drugId);
+
+                //====add the random migration path and scope
+                PDB.tool.generateDrugMigrationPath();
+                PDB.GROUP[PDB.GROUP_DRUG].visible = true;
+                PDB.render.clearGroupIndex(PDB.GROUP_SURFACE_HET);
+                var drugSurface = document.getElementById("drugSurface");
+                drugSurface.checked = false;
+
+              });
+
+
+            }
+
           });
           //
         } else {
@@ -1382,7 +1386,7 @@ PDB.controller = {
       });
     });
   },
-  LoadDrugDetails: function(span, dbname, dbjson) {
+  LoadDrugDetails: function (span, dbname, dbjson) {
     if (dbjson !== undefined && dbjson !== "" && dbjson !== "null") {
 
       PDB.tool.generateLabel(span, "DataBase: " + PDB.DRUBDB_NAME[dbname], "");
@@ -1392,21 +1396,21 @@ PDB.controller = {
         if (drugids[i] === "") {
           continue;
         }
-        PDB.tool.generateButton(span, drugids[i], drugids[i], "rightLabelPDB").addEventListener('click', function() {
+        PDB.tool.generateButton(span, drugids[i], drugids[i], "rightLabelPDB").addEventListener('click', function () {
           var drugId = this.value;
           PDB.config.selectedDrug = drugId;
-          PDB.loader.loadDrug(drugId, dbname, function() {
+          PDB.loader.loadDrug(drugId, dbname, function () {
             w3m.mol[drugId].drug = true;
             PDB.render.clearGroupIndex(PDB.GROUP_DRUG);
             PDB.painter.showHet(drugId);
 
             //====add the random migration path and scope
             PDB.tool.generateDrugMigrationPath();
-            PDB.GROUP[PDB.GROUP_DRUG].visible = true;			
-			 PDB.render.clearGroupIndex(PDB.GROUP_SURFACE_HET);
-			 var drugSurface = document.getElementById("drugSurface");
-			 drugSurface.checked = false;
-			 
+            PDB.GROUP[PDB.GROUP_DRUG].visible = true;
+            PDB.render.clearGroupIndex(PDB.GROUP_SURFACE_HET);
+            var drugSurface = document.getElementById("drugSurface");
+            drugSurface.checked = false;
+
           });
         });
         PDB.tool.generateALink(span, "link" + i, "Detail", PDB.DRUG_MODE_CONFIG.Detail_URL[dbname] + drugids[i], "");
@@ -1420,7 +1424,7 @@ PDB.controller = {
 
     }
   },
-  onKeyDown: function(event) {
+  onKeyDown: function (event) {
     var scope = this;
     var e = event || window.event;
     if (e.keyCode === 13) { // Enter key
@@ -1436,7 +1440,7 @@ PDB.controller = {
       }
     }
   },
-  onLoadEMD: function(event) {
+  onLoadEMD: function (event) {
     var scope = this;
     var e = event || window.event;
     if (e.keyCode == 13) {
@@ -1445,7 +1449,7 @@ PDB.controller = {
       if (PDB.DEBUG_MODE == 1) {
         mapserver = "map-local";
       }
-      EmMapParser.loadMap(input.value, mapserver, function(emmap) {
+      EmMapParser.loadMap(input.value, mapserver, function (emmap) {
         console.log("NX:" + emmap.header.NX);
         console.log("NY:" + emmap.header.NY);
         console.log("NZ:" + emmap.header.NZ);
@@ -1453,8 +1457,8 @@ PDB.controller = {
       });
     }
   },
-  emmapLoad: function(mapId, type, callBack) {
-    EmMapParser.loadMap(mapId, type, function(emmap) {
+  emmapLoad: function (mapId, type, callBack) {
+    EmMapParser.loadMap(mapId, type, function (emmap) {
       if (emmap.data !== undefined && emmap.data.length > 0) {
         //setting
         PDB.EMMAP.DATA = emmap;
@@ -1466,8 +1470,8 @@ PDB.controller = {
       }
     });
   },
-  emmapLoadFromFile: function(response, type, callBack) {
-    EmMapParser.loadMapFromFile(response, type, function(emmap) {
+  emmapLoadFromFile: function (response, type, callBack) {
+    EmMapParser.loadMapFromFile(response, type, function (emmap) {
       if (emmap.data !== undefined && emmap.data.length > 0) {
         //setting
         PDB.EMMAP.DATA = emmap;
@@ -1477,7 +1481,7 @@ PDB.controller = {
       }
     });
   },
-  switchColorBymode: function(color_mode) {
+  switchColorBymode: function (color_mode) {
     var scope = this;
     // PDB.loader.clear();
     w3m.config.color_mode_main = Number(color_mode);
@@ -1488,27 +1492,27 @@ PDB.controller = {
     PDB.render.clearMain();
     scope.drawGeometry(PDB.config.mainMode);
   },
-  switchMeasureByMode: function(mode) {
+  switchMeasureByMode: function (mode) {
     PDB.selection_mode = PDB.SELECTION_ATOM;
     PDB.trigger = mode;
   },
-  switchDragByMode: function(mode) {
+  switchDragByMode: function (mode) {
     PDB.trigger = PDB.TRIGGER_EVENT_DRAG;
     PDB.selection_mode = mode;
   },
-  switchFragmentByMode: function(mode) {
+  switchFragmentByMode: function (mode) {
     PDB.trigger = PDB.TRIGGER_EVENT_FRAGMENT;
     PDB.selection_mode = PDB.SELECTION_RESIDUE;
     PDB.fragmentMode = mode;
     // console.log(mode);
   },
-  switchEditingByMode: function(mode) {
+  switchEditingByMode: function (mode) {
     PDB.trigger = PDB.TRIGGER_EVENT_EDITING;
     PDB.selection_mode = PDB.SELECTION_RESIDUE;
     PDB.fragmentMode = mode;
     // console.log(mode);
   },
-  fragmentPainter: function(startId, endId, selectedMode) {
+  fragmentPainter: function (startId, endId, selectedMode) {
     var reptype = 0;
     var selectRadius = 0;
 
@@ -1572,7 +1576,7 @@ PDB.controller = {
     }
   },
 
-  segmentSelectBindEvent: function(startPointDom, endPointDom) {
+  segmentSelectBindEvent: function (startPointDom, endPointDom) {
     var scope = this;
     var atomIDs = Object.keys(w3m.mol[PDB.pdbId].atom.main);
     var defaultStartAtom = w3m.mol[PDB.pdbId].atom.main[atomIDs[0]];
@@ -1583,13 +1587,13 @@ PDB.controller = {
 
     //var segmentholder = document.getElementById("segmentholder");
     var segmentPanel = document.getElementById("segmentPanel");
-    startPointDom.addEventListener('change', function(e) {
+    startPointDom.addEventListener('change', function (e) {
       var residueID = startPointDom.value;
       var chainName = document.getElementById("chainIDSelect").value;
       var atom = PDB.tool.getFirstAtomByResidueId(residueID, chainName);
       //PDB.CONFIG.startSegmentID = atom[1];
     });
-    endPointDom.addEventListener('change', function(e) {
+    endPointDom.addEventListener('change', function (e) {
       var residueID = endPointDom.value;
       var chainName = document.getElementById("chainIDSelect").value;
       var atom = PDB.tool.getLastAtomByResidueId(residueID, chainName);
@@ -1603,7 +1607,7 @@ PDB.controller = {
     var r_selectedStyle = document.getElementsByName("selectedStyle");
 
 
-    b_addSelected.addEventListener('click', function(e) {
+    b_addSelected.addEventListener('click', function (e) {
       var style = 0;
       for (var i = 0; i < r_selectedStyle.length; i++) {
         if (r_selectedStyle[i].checked) {
@@ -1625,7 +1629,7 @@ PDB.controller = {
       scope.initSelectedPanel(style);
     });
     for (var i = 0; i < r_selectedStyle.length; i++) {
-      r_selectedStyle[i].addEventListener('click', function(e) {
+      r_selectedStyle[i].addEventListener('click', function (e) {
         for (var j in w3m.mol[PDB.pdbId].residueData) {
           for (var i in w3m.mol[PDB.pdbId].residueData[j]) {
             w3m.mol[PDB.pdbId].residueData[j][i].issel = false;
@@ -1636,14 +1640,14 @@ PDB.controller = {
       });
     }
 
-    b_Confirm_fregment.addEventListener('click', function(e) {
+    b_Confirm_fregment.addEventListener('click', function (e) {
       PDB.tool.showSegmentholder(false);
       segmentPanel.style.display = "none";
       PDB.render.clear(0);
       scope.drawGeometry(PDB.config.mainMode);
     });
   },
-  addSelectedPanel: function(changeStyle, chainId, startReId, endReId, reptype, sseType, residueType) {
+  addSelectedPanel: function (changeStyle, chainId, startReId, endReId, reptype, sseType, residueType) {
     var p_seletedPanel = document.getElementById("seletedPanel");
     switch (changeStyle) {
       //case 0:break;
@@ -1672,13 +1676,13 @@ PDB.controller = {
           w3m.mol[PDB.pdbId].residueData[chainId][i].issel = true;
         }
         break; //residue
-        // case 3:
-        // // for(var i in w3m.mol[PDB.pdbId].residueData[chainId]){
-        // // w3m.mol[PDB.pdbId].residueData[chainId][i].issel = false;
-        // // }
-        // w3m.mol[PDB.pdbId].residueData[chainId][startReId].issel = true;
+      // case 3:
+      // // for(var i in w3m.mol[PDB.pdbId].residueData[chainId]){
+      // // w3m.mol[PDB.pdbId].residueData[chainId][i].issel = false;
+      // // }
+      // w3m.mol[PDB.pdbId].residueData[chainId][startReId].issel = true;
 
-        // break;
+      // break;
       case PDB.DRAWSTYLE_SSETYPE:
         sseType = Number(sseType);
         PDB.config.mainMode = PDB.CARTOON_SSE;
@@ -1708,7 +1712,7 @@ PDB.controller = {
         break;
     }
   },
-  initSelectedPanel: function(changeStyle) {
+  initSelectedPanel: function (changeStyle) {
 
     PDB.CHANGESTYLE = changeStyle;
     var p_seletedPanel = document.getElementById("seletedPanel");
@@ -1743,16 +1747,16 @@ PDB.controller = {
           }
         }
         break; //residue
-        // case 3:
-        // var temp = w3m.mol[PDB.pdbId].residueData;
-        // for(var chainid in temp){
-        // for(var i in temp[chainid]){
-        // if(temp[chainid][i].issel){
-        // html =  html+"<span id=\""+"ch_"+chainid+"_re_"+i+"\" class=\"fragment\" attr=\"\">"+chainid+"."+temp[chainid][i].name+temp[chainid][i].id+"<span class=\"fragmentdel\">X</span>&nbsp;</span>";
-        // }
-        // }
-        // }
-        // break;
+      // case 3:
+      // var temp = w3m.mol[PDB.pdbId].residueData;
+      // for(var chainid in temp){
+      // for(var i in temp[chainid]){
+      // if(temp[chainid][i].issel){
+      // html =  html+"<span id=\""+"ch_"+chainid+"_re_"+i+"\" class=\"fragment\" attr=\"\">"+chainid+"."+temp[chainid][i].name+temp[chainid][i].id+"<span class=\"fragmentdel\">X</span>&nbsp;</span>";
+      // }
+      // }
+      // }
+      // break;
       case PDB.DRAWSTYLE_SSETYPE:
         var str = {};
         str[w3m.HELIX] = 'HELIX';
@@ -1809,12 +1813,12 @@ PDB.controller = {
     this.bindSelectedAndDeleteSpan();
   },
 
-  bindSelectedAndDeleteSpan: function() {
+  bindSelectedAndDeleteSpan: function () {
     var scope = this;
     var fragmentSpan = document.getElementsByClassName("fragment");
     fragmentSpan.blink;
     for (var i = 0; i < fragmentSpan.length; i++) {
-      fragmentSpan[i].addEventListener('click', function(e) {
+      fragmentSpan[i].addEventListener('click', function (e) {
         var id = e.target.id;
         var str = id.split("_");
         if (str.length == 0) return;
@@ -1832,7 +1836,7 @@ PDB.controller = {
     }
     var fragmentdelSpan = document.getElementsByClassName("fragmentdel");
     for (var i = 0; i < fragmentdelSpan.length; i++) {
-      fragmentdelSpan[i].addEventListener('click', function(e) {
+      fragmentdelSpan[i].addEventListener('click', function (e) {
         var id = e.target.parentNode.id;
         var str = id.split("_");
         if (str.length == 0) return;
@@ -1878,7 +1882,7 @@ PDB.controller = {
       });
     }
   },
-  initReplaceResidue: function(chain) {
+  initReplaceResidue: function (chain) {
     var residue_replace = document.getElementById("residue_replace");
     residue_replace.innerHTML = "";
     var atoms = w3m.mol[PDB.pdbId].atom.main;
@@ -1904,7 +1908,7 @@ PDB.controller = {
     }
 
   },
-  initSartAndSelect: function(chain) {
+  initSartAndSelect: function (chain) {
     //init residueTypeSelect
     var residueTypeSelect = document.getElementById("residueTypeSelect");
     for (var i in w3m.mol[PDB.pdbId].residueTypeList) {
@@ -1954,7 +1958,7 @@ PDB.controller = {
     }
     this.segmentSelectBindEvent(startPoint, endPoint);
   },
-  initFragmentSelect: function() {
+  initFragmentSelect: function () {
     var scope = this;
     var chainIDSelect = document.getElementById("chainIDSelect");
     var chain_replace = document.getElementById("chain_replace");
@@ -1972,12 +1976,12 @@ PDB.controller = {
       newOption1.value = chainarray[i];
       chain_replace.appendChild(newOption1);
     }
-    chainIDSelect.addEventListener('change', function(e) {
+    chainIDSelect.addEventListener('change', function (e) {
       var chainName = chainIDSelect.value;
       scope.initSartAndSelect(chainName);
     });
     this.initSartAndSelect(chainarray[0]);
-    chain_replace.addEventListener('change', function(e) {
+    chain_replace.addEventListener('change', function (e) {
       var chainName = chain_replace.value;
       scope.initReplaceResidue(chainName);
     });
@@ -1997,7 +2001,7 @@ PDB.controller = {
     }
     this.initReplaceResidue(chainarray[0]);
   },
-  requestRemote: function(name) {
+  requestRemote: function (name) {
     console.log("PDB id:" + name);
 
     if (PDB.residueGroupObject) {
@@ -2031,7 +2035,7 @@ PDB.controller = {
     scope.clear(2, -1);
     PDB.loader.clear();
     //PDB.currentType = -1;
-    PDB.loader.load(name, function() {
+    PDB.loader.load(name, function () {
       //PDB.painter.generateGroupPosition();
       PDB.tool.initFragmentInfo();
       //console.log(PDB.fragmentList);
@@ -2059,10 +2063,10 @@ PDB.controller = {
     });
 
   },
-  clear: function(mode, w3mtype) {
+  clear: function (mode, w3mtype) {
     PDB.render.clear(mode); //0: main, 1: het, 2:all
   },
-  getLoadType: function(type) {
+  getLoadType: function (type) {
     var loadType = w3m.LINE;
     switch (type) {
       case PDB.LINE:
@@ -2077,7 +2081,7 @@ PDB.controller = {
       case PDB.STICK:
         loadType = w3m.LINE;
         break;
-        //case PDB.SPHERE            : loadType = w3m.LINE;      break;
+      //case PDB.SPHERE            : loadType = w3m.LINE;      break;
       case PDB.BALL_AND_ROD:
         loadType = w3m.LINE;
         break;
@@ -2105,7 +2109,7 @@ PDB.controller = {
       case PDB.HET_LINE:
         loadType = w3m.LINE;
         break;
-        //case PDB.HET_SPHERE        : loadType = w3m.TUBE;      break;
+      //case PDB.HET_SPHERE        : loadType = w3m.TUBE;      break;
       case PDB.HET_STICK:
         loadType = w3m.LINE;
         break;
@@ -2118,10 +2122,10 @@ PDB.controller = {
 
     return loadType;
   },
-  drawGeometry: function(type) {
+  drawGeometry: function (type) {
     PDB.tool.printProgress("");
     PDB.tool.showSegmentholder(true);
-    setTimeout(function(e) {
+    setTimeout(function (e) {
       if (w3m.mol[PDB.pdbId] == undefined) return;
       var scope = this;
       console.log("sta: " + type + ": " + new Date());
@@ -2142,7 +2146,7 @@ PDB.controller = {
     }, PDB.HOLDERTIME);
 
   },
-  refreshGeometryByMode: function(type) {
+  refreshGeometryByMode: function (type) {
     //console.log("controller.refreshGeometryByMode");
     PDB.CHANGESTYLE = 0;
     var loadType = this.getLoadType(type);
@@ -2158,7 +2162,7 @@ PDB.controller = {
       scope.drawGeometry(type);
     }
   },
-  refreshSurface: function(structureType, surfaceType, opacity, wireframe) {
+  refreshSurface: function (structureType, surfaceType, opacity, wireframe) {
     console.log("Present Surface:" + structureType);
 
     var scope = this;
@@ -2189,7 +2193,7 @@ PDB.controller = {
       scope.drawGeometry(structureType);
     }
   },
-  changePDBIDInVrMode: function(text) {
+  changePDBIDInVrMode: function (text) {
     var scope = this;
     if (text == "<--") {
       if (PDB.pdbVrId.length > 0) PDB.pdbVrId = PDB.pdbVrId.substring(0, PDB.pdbVrId.length - 1);
@@ -2213,18 +2217,18 @@ PDB.controller = {
       scope.requestRemote(PDB.pdbVrId);
     }
   },
-  startRotation: function(axis, direction) {
+  startRotation: function (axis, direction) {
     window.clearInterval(PDB.ROTATION_TASK_ID);
     PDB.ROTATION_DIRECTION = direction;
     PDB.ROTATION_AXIS = axis;
     PDB.ROTATION_START_FLAG = true;
     PDB.ROTATION_TASK_ID = self.setInterval("PDB.painter.rotate()", 20);
   },
-  cancelRotation: function() {
+  cancelRotation: function () {
     PDB.ROTATION_START_FLAG = false;
     window.clearInterval(PDB.ROTATION_TASK_ID);
   },
-  startMotion: function(axia, direction) {
+  startMotion: function (axia, direction) {
     window.clearInterval(PDB.MOVE_TASK_ID);
     PDB.MOVE_AXIS = axia;
     PDB.MOVE_DIRECTION = direction;
@@ -2234,7 +2238,7 @@ PDB.controller = {
       PDB.MOVE_TASK_ID = self.setInterval("PDB.painter.far()", 20);
     }
   },
-  cancelMotion: function() {
+  cancelMotion: function () {
     window.clearInterval(PDB.MOVE_TASK_ID);
   }
 };

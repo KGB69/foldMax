@@ -9,7 +9,7 @@ var cameraEye, menu_panel;
 var binormal = new THREE.Vector3();
 var normal = new THREE.Vector3();
 var scale = 4;
-var controls, controller1, controllerGrip1, vrEffect, vrControls;
+var controls, controller1, controller2, controllerGrip1, controllerGrip2, vrEffect, vrControls;
 
 var XR_VERSION = 1;
 var raycasterFor3;
@@ -53,7 +53,7 @@ let isImmersive = false;
 var DOING = 0;
 var STATE = {};
 
-function process_button(type, component) {
+function process_button(type, component, componentId) {
   if (component.values.state === Constants.ComponentState.PRESSED && DOING === 0) {
     switch (type) {
       case Constants.ComponentType.TRIGGER:
@@ -76,7 +76,14 @@ function process_button(type, component) {
         STATE[type] = 1;
         break;
       case Constants.ComponentType.BUTTON:
-        onMenuDown(event)
+        // Check for B button (or Y button on left)
+        if (componentId === 'b-button' || componentId === 'y-button' || componentId === 'b_button' || componentId === 'y_button') {
+          if (typeof CanvasUI !== 'undefined') {
+            CanvasUI.toggle();
+          }
+        } else {
+          onMenuDown(event);
+        }
         DOING = 1;
         STATE[type] = 1;
         break;
@@ -120,6 +127,10 @@ function process_button(type, component) {
         }
         break;
       case Constants.ComponentType.BUTTON:
+        if (STATE[type] === 1) {
+          DOING = 0;
+          STATE[type] = 0;
+        }
         break;
       default:
         throw new Error(`Unexpected ComponentType ${type}`);
@@ -132,7 +143,7 @@ function listen_button() {
     components = controllerGrip1.children[0].motionController.components;
     Object.keys(components).forEach((componentId) => {
       type = components[componentId].type;
-      process_button(type, components[componentId]);
+      process_button(type, components[componentId], componentId);
     });
   }
 }
@@ -147,6 +158,14 @@ function onMenuUp(event) {
 }
 
 function onMenuDown(event) {
+  // Check for VR Mode first
+  if (typeof window.renderer !== 'undefined' && window.renderer.xr && window.renderer.xr.isPresenting) {
+    if (typeof CanvasUI !== 'undefined') {
+      CanvasUI.toggle();
+    }
+    return;
+  }
+
   if (PDB.TravelMode) {
     PDB.render.changeToVrMode(PDB.MODE_VR, false);
   } else {
@@ -764,6 +783,15 @@ function onTriggerDown(event) {
   var object = intersection.object;
   var pos = intersection.pos;
   // console.log("----------------" + object.name);
+
+  // ================================ Deal with CanvasUI Interaction ===
+  if (object.userData && object.userData.isCanvasUI) {
+    if (typeof CanvasUI !== 'undefined') {
+      CanvasUI.handleClick(intersection.uv);
+    }
+    return;
+  }
+
   // ================================ Deal with Menu ===
   if (PDB.isShowMenu) {
     dealwithMenu(object);
@@ -1151,6 +1179,30 @@ function getIntersections(controller) {
   raycaster.ray.origin.setFromMatrixPosition(controller.matrixWorld);
   raycaster.ray.direction.set(0, 0, -1).applyMatrix4(tempMatrix);
   var inters = [];
+
+  // Check CanvasUI interaction
+  if (typeof CanvasUI !== 'undefined' && CanvasUI.mesh && CanvasUI.mesh.visible) {
+    // NOTE: VR emulator doesn't provide real controller tracking (controllers stuck at origin)
+    // This raycasting will not work until tested with actual VR hardware
+    // console.log('[RAYCAST] Controller pos:', raycaster.ray.origin);
+    // console.log('[RAYCAST] Controller dir:', raycaster.ray.direction);
+    // console.log('[RAYCAST] CanvasUI pos:', CanvasUI.mesh.position);
+    // console.log('[RAYCAST] CanvasUI visible:', CanvasUI.mesh.visible);
+    // console.log('[RAYCAST] CanvasUI geometry:', CanvasUI.mesh.geometry);
+
+    var canvasIntersections = raycaster.intersectObject(CanvasUI.mesh);
+    // console.log('[RAYCAST] Intersections:', canvasIntersections.length);
+
+    if (canvasIntersections.length > 0) {
+      console.log('[RAYCAST] HIT! UV:', canvasIntersections[0].uv);
+      return [{
+        object: canvasIntersections[0].object,
+        pos: canvasIntersections[0].point,
+        uv: canvasIntersections[0].uv
+      }];
+    }
+  }
+
   // if(PDB.trigger === PDB.TRIGGER_EVENT_DRAG){
   if (PDB.isShowMenu) {
     var gIndexies = [PDB.GROUP_MENU_VIS, PDB.GROUP_MENU_MAIN, PDB.GROUP_MENU_HET, PDB.GROUP_MENU_COLOR, PDB.GROUP_MENU_MEASURE,
@@ -1349,7 +1401,16 @@ function intersectObjects(controller) {
   var intersections = getIntersections(controller);
   if (intersections != undefined && intersections.length > 0) {
     var intersection = intersections[0];
-    if (intersection.type === "Group") {
+
+    // CanvasUI Interaction
+    if (intersection.object.userData.isCanvasUI) {
+      if (typeof CanvasUI !== 'undefined') {
+        CanvasUI.handleMove(intersection.uv);
+      }
+      line.scale.z = intersection.distance;
+      // Don't process other intersections if UI is hit?
+      // return; // Optional: block interaction with scene behind UI
+    } else if (intersection.type === "Group") {
       line.scale.z = intersection.children[0].distance;
     } else {
       line.scale.z = intersection.distance;
@@ -1398,10 +1459,41 @@ function cleanIntersected() {
   }
 }
 
+var lastMouseCheckTime = 0;
+
 function onDocumentMouseMove(event) {
   event.preventDefault();
   mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
   mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+  // Throttle to max 10fps to prevent RAM leak
+  var now = Date.now();
+  if (now - lastMouseCheckTime > 100) {
+    checkMouseIntersection('move');
+    lastMouseCheckTime = now;
+  }
+}
+
+function onDocumentMouseDown(event) {
+  checkMouseIntersection('click');
+}
+
+function checkMouseIntersection(action) {
+  if (typeof CanvasUI === 'undefined' || !CanvasUI.mesh || !CanvasUI.mesh.visible) return;
+
+  if (!raycasterFor3) raycasterFor3 = new THREE.Raycaster();
+
+  raycasterFor3.setFromCamera(mouse, camera);
+
+  var intersects = raycasterFor3.intersectObject(CanvasUI.mesh);
+  if (intersects.length > 0) {
+    var uv = intersects[0].uv;
+    if (action === 'click') {
+      CanvasUI.handleClick(uv);
+    } else if (action === 'move') {
+      CanvasUI.handleMove(uv);
+    }
+  }
 }
 
 PDB.render = {
@@ -1412,12 +1504,21 @@ PDB.render = {
     raycasterFor3 = new THREE.Raycaster();
     container = document.createElement('div');
     document.body.appendChild(container);
-    camera = new THREE.PerspectiveCamera(10, window.innerWidth / window.innerHeight, 0.1, 50000);
-    camera.position.set(PDB.cameraPosition.x, PDB.cameraPosition.y, PDB.cameraPosition.z);
-    scene.background = new THREE.Color(0xf0f0f0);
+
+    // Camera settings adjusted to match envTest
+    // FOV: 45 (was 10 - too zoomed in)
+    // Position: (0, 1.6, 6) - eye level with some distance back
+    camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 50000);
+    camera.position.set(0, 1.6, 6);
+
+    // Legacy background disabled - now handled by environment-loader.js
+    // scene.background = new THREE.Color(0xf0f0f0);
     scene.add(camera);
     document.addEventListener('mousemove', onDocumentMouseMove, false);
+    document.addEventListener('mousedown', onDocumentMouseDown, false);
 
+    // Legacy ground plane and grid disabled - now handled by environment-loader.js
+    /*
     // Add ground plane for lab environment
     var groundGeometry = new THREE.PlaneGeometry(10000, 10000);
     var groundMaterial = new THREE.MeshPhongMaterial({
@@ -1435,8 +1536,10 @@ PDB.render = {
     var gridHelper = new THREE.GridHelper(10000, 100, 0xcccccc, 0xe0e0e0);
     gridHelper.position.y = -49.9;
     scene.add(gridHelper);
+    */
 
-    this.addLightsByType(lightType);
+    // Legacy lighting disabled - now handled by environment-loader.js
+    // this.addLightsByType(lightType);
 
     for (var i = 0; i < PDB.GROUP_COUNT; i++) {
       PDB.GROUP[i] = new THREE.Group();
@@ -1455,6 +1558,9 @@ PDB.render = {
     //renderer.vr.enabled = true;
     //renderer.vr.standing = true;
 
+    // DISABLED: TrackballControls conflicts with PlayerControls (envTest WASD system)
+    // PlayerControls is now handling camera movement and mouse look
+    /*
     if (controlsType == 0) {
       controls = new THREE.TrackballControls(camera, renderer.domElement);
       controls.minDistance = 10;
@@ -1468,13 +1574,15 @@ PDB.render = {
       stats.domElement.style.right = '0px';
       stats.domElement.style.left = 'inherit';
       container.appendChild(stats.dom);
-      controls = new THREE.OrbitControls(camera);
-      controls.target.set(0, 0, 0);
-      //controls.update();
+      // DISABLED: OrbitControls conflicts with PlayerControls
+      // controls = new THREE.OrbitControls(camera);
+      // controls.target.set(0, 0, 0);
+      // controls.update();
     } else {
-      controls = new THREE.OrbitControls(camera, renderer.domElement);
-
+      // controls = new THREE.OrbitControls(camera, renderer.domElement);
+      // controls.update();
     }
+    */
 
     window.addEventListener('resize', this.onWindowResize, false);
   },
@@ -1483,18 +1591,25 @@ PDB.render = {
     document.body.appendChild(container);
     // Scene
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x808080);
+    scene.background = new THREE.Color(0x808080); // Fallback - will be replaced by environment loader
     scene.add(new THREE.HemisphereLight(0x808080, 0x606060));
     // Camera
-    camera = new THREE.PerspectiveCamera(10, window.innerWidth / window.innerHeight, 0.1, 50000);
-    // camera.position.copy(new THREE.Vector3(0, 0, 0));
-    camera.position.set(0, 1.6, 300);
-    //camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 0.1, 50 );
+    // Use 75° FOV for VR (better immersion), 10° for desktop (molecule inspection)
+    var initialFOV = window.location.search.includes('vmode=vr') ? 75 : 10;
+    camera = new THREE.PerspectiveCamera(initialFOV, window.innerWidth / window.innerHeight, 0.1, 50000);
+    // VR: start closer (Z=50) and at eye level (Y=1.6)
+    // Desktop: start far (Z=300) for overview
+    if (window.location.search.includes('vmode=vr')) {
+      camera.position.set(0, 1.6, 50);
+    } else {
+      camera.position.set(0, 1.6, 300);
+    }
     scene.add(camera);
     //controls
-    controls = new THREE.OrbitControls(camera, container);
-    controls.target.set(0, 1.6, 0);
-    controls.update();
+    // DISABLED: OrbitControls conflicts with PlayerControls
+    // controls = new THREE.OrbitControls(camera, container);
+    // controls.target.set(0, 1.6, 0);
+    // controls.update();
     // Group
     for (var i = 0; i < PDB.GROUP_COUNT; i++) {
       PDB.GROUP[i] = new THREE.Group();
@@ -1521,6 +1636,13 @@ PDB.render = {
     //renderer.vr.standing = true;
     //vr
     document.body.appendChild(VRButton.createButton(renderer));
+
+    // Initialize Canvas UI for VR panels
+    if (typeof CanvasUI !== 'undefined') {
+      CanvasUI.init();
+      console.log('[RENDER] Canvas UI initialized');
+    }
+
     renderer.xr.addEventListener('sessionstart', () => { isImmersive = true; });
     renderer.xr.addEventListener('sessionend', () => { isImmersive = false; });
 
@@ -1538,6 +1660,16 @@ PDB.render = {
       controllerGrip1.add(controllerModelFactory.createControllerModel(controllerGrip1));
       scene.add(controllerGrip1);
 
+      // Add controller2 (left hand)
+      controller2 = renderer.xr.getController(1);
+      controller2.addEventListener('selectstart', onTriggerDown);
+      controller2.addEventListener('selectend', onTriggerUp);
+      scene.add(controller2);
+
+      controllerGrip2 = renderer.xr.getControllerGrip(1);
+      controllerGrip2.add(controllerModelFactory.createControllerModel(controllerGrip2));
+      scene.add(controllerGrip2);
+
       // helpers
       var geometry = new THREE.BufferGeometry();
       geometry.setAttribute('position', new THREE.Float32BufferAttribute([0, 0, 0, 0, 0, -1], 3));
@@ -1551,6 +1683,7 @@ PDB.render = {
       line.name = 'line';
       line.scale.z = 5;
       controller1.add(line.clone());
+      controller2.add(line.clone());
     } else {
       window.addEventListener('vr controller connected', function (event) {
         controller1 = event.detail;
@@ -1848,6 +1981,17 @@ PDB.render = {
     }
   },
   render: function () {
+    // Update procedural environment if available
+    if (typeof window.updateEnvironment === 'function') {
+      window.updateEnvironment();
+    }
+
+    // Update Player Controls
+    if (typeof PlayerControls !== 'undefined' && PlayerControls.update) {
+      var delta = clock.getDelta(); // Ensure clock is available or use a local one
+      PlayerControls.update(delta);
+    }
+
     if (PDB.mode === PDB.MODE_VR || PDB.mode === PDB.MODE_TRAVEL_VR) {
       //if(controller1!=undefined){controller1.update();}
       //controller2.update();
@@ -1859,6 +2003,18 @@ PDB.render = {
       // statsVR.setCustom2("y:" + camera.position.y.toFixed(2));
       // statsVR.setCustom3("z:" + camera.position.z.toFixed(2));
 
+      // DEBUG: Log camera position to console (DISABLED - causes RAM leak)
+      /*
+      if (typeof window.vrDebugCounter === 'undefined') window.vrDebugCounter = 0;
+      if (window.vrDebugCounter++ % 60 === 0) {  // Log once per second
+        console.log('[VR] Camera pos:', camera.position.x.toFixed(2), camera.position.y.toFixed(2), camera.position.z.toFixed(2));
+        if (PDB.GROUP && PDB.GROUP[0]) {
+          console.log('[VR] Protein pos:', PDB.GROUP[0].position.x.toFixed(2), PDB.GROUP[0].position.y.toFixed(2), PDB.GROUP[0].position.z.toFixed(2));
+          console.log('[VR] Protein parent:', PDB.GROUP[0].parent ? PDB.GROUP[0].parent.type : 'none');
+        }
+      }
+      */
+
       if (menu_panel != undefined) {
         menu_panel.lookAt(camera.position);
       }
@@ -1867,6 +2023,9 @@ PDB.render = {
       if (controller1 != undefined) {
         intersectObjects(controller1);
         // controller1.update();
+      }
+      if (controller2 != undefined) {
+        intersectObjects(controller2);
       }
       //intersectObjects( THREE.VRController.prototype );
 
@@ -1946,6 +2105,7 @@ PDB.render = {
       }
       listen_button();
       renderer.render(scene, camera);
+
       //statsVR.msEnd();
 
     } else if (PDB.mode === PDB.MODE_THREE || PDB.MODE_TRAVEL_THREE) {
@@ -2128,10 +2288,11 @@ PDB.render = {
         renderer.render(scene, camera);
       }
       camera.updateProjectionMatrix();
+      // DISABLED: controls.update() conflicts with PlayerControls
       // Only update OrbitControls if navigation is not enabled
-      if (!PDB.navigation || !PDB.navigation.enabled) {
-        controls.update();
-      }
+      // if (!PDB.navigation || !PDB.navigation.enabled) {
+      //   controls.update();
+      // }
     }
     //mutation effect
     // if (PDB.GROUP[PDB.GROUP_MUTATION] !== undefined && PDB.SHOW_MUTATION_WHEN_SWITCH_VR_MENU === 1 && PDB.GROUP[PDB.GROUP_MUTATION].children.length > 0) {

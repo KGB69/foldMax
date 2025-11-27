@@ -1,0 +1,125 @@
+/* CSS3D VR Panels */
+
+.css3d-panel {
+    background: rgba(10, 20, 30, 0.95);
+    border: 3px solid rgba(0, 255, 255, 0.6);
+    border-radius: 15px;
+    padding: 0;
+    font-family: 'Arial', sans-serif;
+    color: #ffffff;
+    box-shadow: 0 0 30px rgba(0, 255, 255, 0.4);
+    min-width: 600px;
+    width: 600px;
+}
+
+.css3d-menu-panel {
+    width: 600px;
+}
+
+/* Panel Header */
+.css3d-panel-header {
+    background: linear-gradient(135deg, rgba(0, 200, 255, 0.2), rgba(0, 100, 200, 0.3));
+    padding: 20px 30px;
+    border-bottom: 2px solid rgba(0, 255, 255, 0.5);
+    border-radius: 12px 12px 0 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.css3d-panel-header h2 {
+    margin: 0;
+    font-size: 32px;
+    color: #00ffff;
+    text-shadow: 0 0 10px rgba(0, 255, 255, 0.8);
+}
+
+.css3d-close-btn {
+    background: rgba(255, 50, 50, 0.4);
+    border: 2px solid rgba(255, 100, 100, 0.8);
+    color: #fff;
+    font-size: 40px;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.3s;
+    line-height: 1;
+    padding: 0;
+}
+
+.css3d-close-btn:hover {
+    background: rgba(255, 50, 50, 0.8);
+    transform: scale(1.1);
+}
+
+/* Panel Content */
+.css3d-panel-content {
+    padding: 30px;
+}
+
+.css3d-section {
+    margin: 20px 0;
+}
+
+.css3d-section h3 {
+    color: #00ddff;
+    font-size: 24px;
+    margin: 10px 0;
+    text-shadow: 0 0 5px rgba(0, 221, 255, 0.6);
+}
+
+/* Buttons */
+.css3d-btn {
+    display: block;
+    width: 100%;
+    padding: 20px;
+    margin: 15px 0;
+    font-size: 24px;
+    background: linear-gradient(135deg, rgba(0, 150, 255, 0.3), rgba(0, 100, 200, 0.4));
+    border: 2px solid rgba(0, 200, 255, 0.6);
+    color: #ffffff;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.3s;
+    text-align: left;
+    font-weight: bold;
+}
+
+.css3d-btn:hover {
+    background: linear-gradient(135deg, rgba(0, 200, 255, 0.5), rgba(0, 150, 255, 0.6));
+    border-color: rgba(0, 255, 255, 0.9);
+    transform: translateX(10px);
+    box-shadow: 0 0 20px rgba(0, 200, 255, 0.5);
+}
+
+.css3d-btn-small {
+    display: inline-block;
+    padding: 12px 20px;
+    margin: 8px 5px;
+    font-size: 18px;
+    background: rgba(0, 150, 200, 0.3);
+    border: 2px solid rgba(0, 180, 220, 0.5);
+    color: #ffffff;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.css3d-btn-small:hover {
+    background: rgba(0, 200, 255, 0.5);
+    border-color: rgba(0, 255, 255, 0.8);
+    transform: scale(1.05);
+}
+
+/* Divider */
+.css3d-divider {
+    border: none;
+    border-top: 2px solid rgba(0, 255, 255, 0.3);
+    margin: 25px 0;
+}
+
+/* Make all elements within pointerEvents auto for interaction */
+.css3d-panel * {
+    pointer-events: auto;
+}

@@ -72,9 +72,11 @@ function show_panel(panelShow) {
 }
 
 var vrModelBtn = document.getElementById("vrMode");
-vrModelBtn.style.display = "block";
-if (PDB.mode === PDB.MODE_VR) {
-  vrModelBtn.style.display = "none";
+if (vrModelBtn) {
+  vrModelBtn.style.display = "block";
+  if (PDB.mode === PDB.MODE_VR) {
+    vrModelBtn.style.display = "none";
+  }
 }
 var btn_small_menu = document.getElementById("small_menu");
 
@@ -183,7 +185,9 @@ if (location.search) {
       break;
     case "vr":
       var vrModelBtn = document.getElementById("vrMode");
-      vrModelBtn.style.display = "none";
+      if (vrModelBtn) {
+        vrModelBtn.style.display = "none";
+      }
       PDB.mode = PDB.MODE_VR;
       break;
     case "travel":
@@ -229,11 +233,30 @@ if (voiceControl !== undefined) {
 }
 
 // Load the environment model after initialization
+// Load the environment model after initialization
 if (typeof loadEnvironmentModel === 'function') {
   // Wait a bit for the scene to be fully initialized
   setTimeout(function () {
     loadEnvironmentModel();
+
+    // Initialize Player Controls and Immersive Menu
+    if (typeof PlayerControls !== 'undefined') {
+      if (camera) {
+        PlayerControls.init(camera, document.body);
+      }
+    }
+
+    if (typeof ImmersiveMenu !== 'undefined') {
+      ImmersiveMenu.init();
+    }
+
+    // Disable old FAB if it exists
+    var oldMenu = document.getElementById('radial-menu');
+    if (oldMenu) oldMenu.style.display = 'none';
+
   }, 1000);
+} else {
+  console.error('[Index] loadEnvironmentModel NOT found');
 }
 
 var rotation_task_id = 0;
@@ -256,7 +279,9 @@ function voiceOperation(code) {
     case 12:
       window.location.href = "index.html?vmode=vr";
       var vrModelBtn = document.getElementById("vrMode");
-      vrModelBtn.style.display = "none";
+      if (vrModelBtn) {
+        vrModelBtn.style.display = "none";
+      }
       break;
     case 13:
       PDB.CHANGESTYLE = 6;

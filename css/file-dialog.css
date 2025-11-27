@@ -1,0 +1,305 @@
+/* File Upload Dialog */
+.file-dialog {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(5px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+}
+
+.file-dialog.active {
+    display: flex;
+}
+
+.file-dialog-content {
+    background: rgba(15, 25, 35, 0.98);
+    border: 2px solid rgba(0, 255, 255, 0.4);
+    border-radius: 12px;
+    padding: 0;
+    max-width: 500px;
+    width: 90%;
+    box-shadow: 0 10px 40px rgba(0, 255, 255, 0.2);
+    animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: scale(0.9) translateY(-20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.file-dialog-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    background: rgba(0, 255, 255, 0.1);
+    border-bottom: 2px solid rgba(0, 255, 255, 0.3);
+    border-radius: 10px 10px 0 0;
+}
+
+.file-dialog-header h3 {
+    margin: 0;
+    color: #00ffff;
+    font-family: 'Courier New', monospace;
+    font-size: 20px;
+}
+
+.file-dialog-header .close-btn {
+    background: rgba(255, 0, 0, 0.3);
+    border: 2px solid rgba(255, 0, 0, 0.6);
+    color: #fff;
+    font-size: 24px;
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    line-height: 1;
+}
+
+.file-dialog-header .close-btn:hover {
+    background: rgba(255, 0, 0, 0.6);
+    transform: scale(1.1);
+}
+
+/* Drop Zone */
+.drop-zone {
+    margin: 20px;
+    padding: 40px;
+    border: 3px dashed rgba(0, 255, 255, 0.4);
+    border-radius: 8px;
+    background: rgba(0, 255, 255, 0.05);
+    cursor: pointer;
+    transition: all 0.3s;
+    text-align: center;
+}
+
+.drop-zone:hover,
+.drop-zone.drag-over {
+    border-color: rgba(0, 255, 255, 0.8);
+    background: rgba(0, 255, 255, 0.15);
+    transform: scale(1.02);
+}
+
+.drop-zone-content {
+    pointer-events: none;
+}
+
+.drop-icon {
+    font-size: 48px;
+    margin-bottom: 10px;
+    animation: float 2s ease-in-out infinite;
+}
+
+@keyframes float {
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+.drop-text {
+    color: #00ffff;
+    font-size: 18px;
+    margin: 10px 0 5px 0;
+    font-weight: bold;
+}
+
+.drop-subtext {
+    color: #888;
+    font-size: 14px;
+    margin: 0;
+}
+
+/* Input Sections */
+.file-input-section {
+    margin: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid rgba(0, 255, 255, 0.2);
+}
+
+.file-input-section:last-of-type {
+    border-bottom: none;
+}
+
+.file-input-section label {
+    display: block;
+    color: #00ffff;
+    font-size: 14px;
+    margin-bottom: 8px;
+    font-weight: bold;
+}
+
+.input-group {
+    display: flex;
+    gap: 10px;
+}
+
+.input-group input {
+    flex: 1;
+    padding: 10px 15px;
+    background: rgba(0, 50, 80, 0.5);
+    border: 2px solid rgba(0, 255, 255, 0.3);
+    border-radius: 6px;
+    color: #fff;
+    font-size: 14px;
+    font-family: 'Courier New', monospace;
+    transition: all 0.2s;
+}
+
+.input-group input:focus {
+    outline: none;
+    border-color: rgba(0, 255, 255, 0.7);
+    background: rgba(0, 50, 80, 0.7);
+}
+
+.input-group input::placeholder {
+    color: #666;
+}
+
+.input-group button {
+    padding: 10px 20px;
+    background: linear-gradient(135deg, rgba(0, 200, 255, 0.3), rgba(0, 255, 200, 0.3));
+    border: 2px solid rgba(0, 255, 255, 0.5);
+    border-radius: 6px;
+    color: #00ffff;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+}
+
+.input-group button:hover {
+    background: linear-gradient(135deg, rgba(0, 200, 255, 0.5), rgba(0, 255, 200, 0.5));
+    border-color: rgba(0, 255, 255, 0.8);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 255, 255, 0.3);
+}
+
+.input-group button:active {
+    transform: translateY(0);
+}
+
+/* Recent Files */
+.recent-files-section {
+    margin: 20px;
+    padding: 15px;
+    background: rgba(0, 50, 80, 0.3);
+    border-radius: 8px;
+}
+
+.recent-files-section label {
+    display: block;
+    color: #00ffff;
+    font-size: 14px;
+    margin-bottom: 10px;
+    font-weight: bold;
+}
+
+.recent-files-list {
+    max-height: 150px;
+    overflow-y: auto;
+}
+
+.recent-file-item {
+    padding: 10px;
+    background: rgba(0, 100, 150, 0.2);
+    border: 1px solid rgba(0, 255, 255, 0.2);
+    border-radius: 6px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+}
+
+.recent-file-item:hover {
+    background: rgba(0, 100, 150, 0.4);
+    border-color: rgba(0, 255, 255, 0.5);
+    transform: translateX(5px);
+}
+
+.file-type {
+    display: inline-block;
+    padding: 2px 8px;
+    background: rgba(0, 255, 255, 0.2);
+    border-radius: 4px;
+    font-size: 11px;
+    color: #00ffff;
+    font-weight: bold;
+}
+
+.file-id {
+    flex: 1;
+    color: #fff;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+}
+
+.file-time {
+    color: #888;
+    font-size: 11px;
+}
+
+/* Scrollbar for recent files */
+.recent-files-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.recent-files-list::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 3px;
+}
+
+.recent-files-list::-webkit-scrollbar-thumb {
+    background: rgba(0, 255, 255, 0.4);
+    border-radius: 3px;
+}
+
+.recent-files-list::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 255, 255, 0.6);
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+    .file-dialog-content {
+        max-width: 95%;
+    }
+
+    .drop-zone {
+        padding: 30px 20px;
+    }
+
+    .input-group {
+        flex-direction: column;
+    }
+
+    .input-group button {
+        width: 100%;
+    }
+}

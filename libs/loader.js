@@ -3,9 +3,9 @@
  * mail: xukui.cs@gmail.com
  */
 PDB.loader = {
-  load: function(name, callBack) {
+  load: function (name, callBack) {
     var scope = this;
-    w3m.ajax.get(name, function(text) {
+    w3m.ajax.get(name, function (text) {
       w3m.tool.clear();
       w3m.config.rep_mode_main = PDB.config.mainMode;
       w3m.config.rep_mode_het = PDB.config.hetMode;
@@ -76,16 +76,22 @@ PDB.loader = {
       PDB.GROUP_STRUCTURE_INDEX.push(PDB.GROUP_SLICE);
       PDB.GROUP_STRUCTURE_INDEX.push(PDB.GROUP_BOND);
       PDB.GROUP_STRUCTURE_INDEX.push(PDB.GROUP_MAP);
+
+      // Reinitialize procedural environment (sky, ground, etc.) after protein load
+      if (typeof window.loadEnvironmentModel === 'function') {
+        window.loadEnvironmentModel();
+      }
+
       callBack();
     });
   },
-  loadFromDisk: function(file, callBack) {
+  loadFromDisk: function (file, callBack) {
     var scope = this;
     w3m.tool.clear();
     w3m.config.rep_mode_main = PDB.config.mainMode;
     w3m.config.rep_mode_het = PDB.config.hetMode;
     PDB.pdbId = file.name.split(".")[0];
-    w3m.file.get(file, function(response) {
+    w3m.file.get(file, function (response) {
       text = response;
       w3m.pdb(text);
       PDB.pdbId = w3m.global.mol;
@@ -149,23 +155,29 @@ PDB.loader = {
       PDB.GROUP_STRUCTURE_INDEX.push(PDB.GROUP_DRUG);
       PDB.GROUP_STRUCTURE_INDEX.push(PDB.GROUP_SLICE);
       PDB.GROUP_STRUCTURE_INDEX.push(PDB.GROUP_BOND);
+
+      // Reinitialize procedural environment (sky, ground, etc.) after protein load
+      if (typeof window.loadEnvironmentModel === 'function') {
+        window.loadEnvironmentModel();
+      }
+
       callBack();
     });
   },
-  loadDrug: function(drugname, dbname, callBack) {
+  loadDrug: function (drugname, dbname, callBack) {
     var scope = this;
-    w3m.ajax.getDrug(drugname, dbname, function(text) {
+    w3m.ajax.getDrug(drugname, dbname, function (text) {
       w3m.tool.clear();
-	  
+
       w3m.pdb(text, drugname);
       w3m.mol[drugname].drug = true;
-	  scope.getDrugCenterOffset();
+      scope.getDrugCenterOffset();
       callBack();
     });
   },
-  loadResidue: function(resName, callBack) {
+  loadResidue: function (resName, callBack) {
     var scope = this;
-    w3m.ajax.getResidue(resName, function(text) {
+    w3m.ajax.getResidue(resName, function (text) {
       PDB.residue = resName;
       if (!w3m.mol[resName]) {
         w3m.mol[resName] = {};
@@ -179,16 +191,16 @@ PDB.loader = {
       callBack();
     });
   },
-  loadDocking: function(path, dockingName, callBack) {
+  loadDocking: function (path, dockingName, callBack) {
     var scope = this;
-    w3m.ajax.getDocking(path, dockingName, function(text) {
+    w3m.ajax.getDocking(path, dockingName, function (text) {
       w3m.tool.clear();
       w3m.pdb(text, dockingName);
       w3m.mol[dockingName].drug = true;
       callBack();
     });
   },
-  clear: function() {
+  clear: function () {
     // reset
     w3m.global.limit = {
       x: [],
@@ -207,15 +219,15 @@ PDB.loader = {
     PDB.GeoCenterOffset = "";
     PDB.fragmentList = {};
   },
-  getDrugCenterOffset: function(){
-	var limit = w3m.global.drugLimit;
-	x = -(limit.x[0] + limit.x[1]) / 2;
-	y = -(limit.y[0] + limit.y[1]) / 2;
-	z = -(limit.z[0] + limit.z[1]) / 2; //copy from w3m.limit
-	PDB.DrugCenterOffset = new THREE.Vector3(x, y, z);
-	return offset;
+  getDrugCenterOffset: function () {
+    var limit = w3m.global.drugLimit;
+    x = -(limit.x[0] + limit.x[1]) / 2;
+    y = -(limit.y[0] + limit.y[1]) / 2;
+    z = -(limit.z[0] + limit.z[1]) / 2; //copy from w3m.limit
+    PDB.DrugCenterOffset = new THREE.Vector3(x, y, z);
+    return offset;
   },
-  getCenterOffset: function() {
+  getCenterOffset: function () {
     limit = w3m.global.limit;
     x = -(limit.x[0] + limit.x[1]) / 2;
     y = -(limit.y[0] + limit.y[1]) / 2;
@@ -229,7 +241,7 @@ PDB.loader = {
 
     return offset;
   },
-  dealwithBigPDB: function() {
+  dealwithBigPDB: function () {
     if (w3m.mol[PDB.pdbId]) {
       var mainAtomCount = w3m.mol[PDB.pdbId].atom['main'].length;
       console.log("MainAtomCount:" + mainAtomCount);
