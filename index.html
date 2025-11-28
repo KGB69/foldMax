@@ -209,93 +209,157 @@
       backdrop-filter: blur(5px);
     }
 
-    /* Player Control Sliders */
-    #player-controls {
+    /* Settings Panel */
+    #settings-toggle {
       position: fixed;
       top: 20px;
       right: 20px;
-      z-index: 9998;
-      padding: 15px 20px;
-      background: rgba(0, 0, 0, 0.7);
+      z-index: 10001;
+      background: rgba(0, 0, 0, 0.6);
       border: 1px solid rgba(255, 255, 255, 0.2);
-      border-radius: 10px;
-      backdrop-filter: blur(10px);
+      border-radius: 8px;
       color: white;
-      font-family: Arial, sans-serif;
-      font-size: 14px;
-      min-width: 220px;
+      padding: 10px 15px;
+      cursor: pointer;
+      font-size: 24px;
+      backdrop-filter: blur(5px);
+      transition: background 0.2s;
     }
 
-    #player-controls label {
-      display: block;
-      margin-bottom: 8px;
-      margin-top: 12px;
-      font-weight: bold;
+    #settings-toggle:hover {
+      background: rgba(255, 255, 255, 0.2);
     }
 
-    #player-controls label:first-child {
-      margin-top: 0;
-    }
-
-    #player-controls input[type="range"] {
-      width: 100%;
-      margin-bottom: 5px;
-    }
-
-    #speed-value,
-    #height-value {
-      color: #4CAF50;
-      font-weight: bold;
-    }
-
-    /* Shader Control Sliders */
-    #shader-controls {
+    #settings-panel {
       position: fixed;
-      top: 160px;
-      right: 20px;
-      z-index: 9998;
-      padding: 15px 20px;
-      background: rgba(0, 0, 0, 0.7);
-      border: 1px solid rgba(100, 150, 255, 0.3);
-      border-radius: 10px;
-      backdrop-filter: blur(10px);
+      top: 0;
+      right: -320px;
+      /* Hidden */
+      width: 320px;
+      height: 100%;
+      background: rgba(15, 20, 25, 0.95);
+      backdrop-filter: blur(15px);
+      z-index: 10000;
+      transition: right 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+      box-shadow: -5px 0 20px rgba(0, 0, 0, 0.5);
+      display: flex;
+      flex-direction: column;
+    }
+
+    #settings-panel.active {
+      right: 0;
+    }
+
+    .settings-header {
+      padding: 20px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .settings-header h3 {
+      margin: 0;
+      color: #00ffff;
+      font-size: 1.2rem;
+    }
+
+    .close-settings {
+      background: none;
+      border: none;
+      color: rgba(255, 255, 255, 0.6);
+      font-size: 24px;
+      cursor: pointer;
+    }
+
+    .close-settings:hover {
       color: white;
-      font-family: Arial, sans-serif;
-      font-size: 14px;
-      min-width: 220px;
-      max-height: 400px;
+    }
+
+    .settings-content {
+      padding: 20px;
       overflow-y: auto;
+      flex: 1;
+    }
+
+    .settings-section {
+      margin-bottom: 30px;
     }
 
     .shader-section-title {
-      font-size: 16px;
+      font-size: 14px;
       font-weight: bold;
-      margin-bottom: 12px;
-      color: #6699FF;
-      border-bottom: 1px solid rgba(100, 150, 255, 0.3);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: rgba(255, 255, 255, 0.5);
+      margin-bottom: 15px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
       padding-bottom: 5px;
     }
 
-    #shader-controls label {
+    /* Custom File Upload */
+    .custom-file-upload {
+      display: inline-block;
+      padding: 10px 20px;
+      cursor: pointer;
+      background: rgba(0, 150, 255, 0.2);
+      border: 1px solid rgba(0, 150, 255, 0.5);
+      border-radius: 5px;
+      color: #00ffff;
+      width: 100%;
+      text-align: center;
+      transition: all 0.2s;
+    }
+
+    .custom-file-upload:hover {
+      background: rgba(0, 150, 255, 0.4);
+    }
+
+    input[type="file"] {
+      display: none;
+    }
+
+    /* Sliders */
+    #settings-panel label {
       display: block;
       margin-bottom: 8px;
-      margin-top: 12px;
-      font-weight: bold;
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.9);
     }
 
-    #shader-controls label:first-of-type {
-      margin-top: 0;
-    }
-
-    #shader-controls input[type="range"] {
+    #settings-panel input[type="range"] {
       width: 100%;
-      margin-bottom: 5px;
+      margin-bottom: 15px;
+      background: rgba(255, 255, 255, 0.1);
+      height: 4px;
+      border-radius: 2px;
+      -webkit-appearance: none;
     }
 
-    #shader-controls span {
-      color: #6699FF;
-      font-weight: bold;
+    #settings-panel input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #00ffff;
+      cursor: pointer;
+      margin-top: -6px;
     }
+
+    #settings-panel input[type="range"]::-webkit-slider-runnable-track {
+      width: 100%;
+      height: 4px;
+      cursor: pointer;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 2px;
+    }
+
+    #settings-panel span {
+      float: right;
+      color: #00ffff;
+      font-family: monospace;
+    }
+
 
     /* Center Button (Back/Menu) */
     .immersive-center-btn {
@@ -387,9 +451,7 @@
     <input type="text" name="search_text" class="search_text" id="search_text" placeholder="PDB ID"
       onkeydown="PDB.controller.onKeyDown(event)" />
     <input type="button" class="top_btn" id="search_button" value="Search">
-    <a class="input-file input-fileup">
-      Upload<input size="100" type="file" name="file" id="upload_button">
-    </a>
+    <!-- Upload button moved to Settings Panel -->
     <a class="input-file input-fileup">
       <button class="test" onmousedown="startRecording()" onmouseup="endRecord()">Voice</button>
     </a>
@@ -404,8 +466,8 @@
         <button class="close-btn" onclick="window.ImmersiveMenuExt.closeFileDialog()">×</button>
       </div>
 
-      <!-- Drag & Drop Zone -->
-      <div id="drop-zone" class="drop-zone">
+      <!-- Drag & Drop Zone (Hidden for VR compatibility) -->
+      <div id="drop-zone" class="drop-zone" style="display: none;">
         <div class="drop-zone-content">
           <div class="drop-icon">📤</div>
           <p class="drop-text">Drop PDB file here</p>
@@ -414,8 +476,8 @@
         </div>
       </div>
 
-      <!-- URL Input -->
-      <div class="file-input-section">
+      <!-- URL Input (Hidden for VR compatibility) -->
+      <div class="file-input-section" style="display: none;">
         <label>Load from URL:</label>
         <div class="input-group">
           <input type="text" id="pdb-url-input" placeholder="https://example.com/protein.pdb">
@@ -923,43 +985,61 @@
       Controls</button>
   </div>
 
-  <!-- Toggle Button for Environment Controls -->
-  <button id="showEnvControls"
-    style="position:absolute;top:10px;right:10px;background:#4CAF50;color:#fff;border:none;padding:10px 15px;border-radius:4px;cursor:pointer;font-size:12px;z-index:1000;">Environment
-    Controls</button>
+  <!-- Settings Toggle -->
+  <button id="settings-toggle" onclick="toggleSettings()">☰</button>
 
-  <!-- Player Control Sliders -->
-  <div id="player-controls">
-    <label for="speed-slider">Movement Speed: <span id="speed-value">77.0x</span></label>
-    <input type="range" id="speed-slider" min="0.1" max="100.0" step="0.1" value="77.0">
+  <!-- Settings Panel -->
+  <div id="settings-panel">
+    <div class="settings-header">
+      <h3>Settings</h3>
+      <button class="close-settings" onclick="toggleSettings()">×</button>
+    </div>
 
-    <label for="height-slider">Player Height: <span id="height-value">10.0m</span></label>
-    <input type="range" id="height-slider" min="0.1" max="100.0" step="0.1" value="10.0">
-  </div>
+    <div class="settings-content">
+      <!-- Upload Section -->
+      <div class="settings-section">
+        <div class="shader-section-title">File Upload</div>
+        <label class="custom-file-upload">
+          <input type="file" name="file" id="upload_button">
+          📁 Upload PDB
+        </label>
+      </div>
 
-  <!-- Shader Control Sliders -->
-  <div id="shader-controls">
-    <div class="shader-section-title">Platform Shader</div>
+      <!-- Player Controls -->
+      <div id="player-controls" class="settings-section">
+        <div class="shader-section-title">Player Controls</div>
+        <label for="speed-slider">Movement Speed: <span id="speed-value">77.0x</span></label>
+        <input type="range" id="speed-slider" min="0.1" max="100.0" step="0.1" value="77.0">
 
-    <label for="time-of-day">Time of Day: <span id="time-of-day-value">Twilight</span></label>
-    <input type="range" id="time-of-day" min="0.0" max="1.0" step="0.01" value="0.35">
+        <label for="height-slider">Player Height: <span id="height-value">10.0m</span></label>
+        <input type="range" id="height-slider" min="0.1" max="100.0" step="0.1" value="10.0">
+      </div>
 
-    <label for="ring-spacing">Ring Spacing: <span id="ring-spacing-value">21.0m</span></label>
-    <input type="range" id="ring-spacing" min="2.0" max="50.0" step="1.0" value="21.0">
+      <!-- Shader Controls -->
+      <div id="shader-controls" class="settings-section">
+        <div class="shader-section-title">Platform Shader</div>
 
-    <label for="pulse-speed">Pulse Speed: <span id="pulse-speed-value">0.3x</span></label>
-    <input type="range" id="pulse-speed" min="0.0" max="10.0" step="0.1" value="0.3">
+        <label for="time-of-day">Time of Day: <span id="time-of-day-value">Twilight</span></label>
+        <input type="range" id="time-of-day" min="0.0" max="1.0" step="0.01" value="0.35">
 
-    <label for="pulse-intensity">Pulse Intensity: <span id="pulse-intensity-value">0.3x</span></label>
-    <input type="range" id="pulse-intensity" min="0.0" max="5.0" step="0.1" value="0.3">
+        <label for="ring-spacing">Ring Spacing: <span id="ring-spacing-value">21.0m</span></label>
+        <input type="range" id="ring-spacing" min="2.0" max="50.0" step="1.0" value="21.0">
 
-    <label for="breathe-speed">Breathe Speed: <span id="breathe-speed-value">0.3x</span></label>
-    <input type="range" id="breathe-speed" min="0.0" max="3.0" step="0.1" value="0.3">
+        <label for="pulse-speed">Pulse Speed: <span id="pulse-speed-value">0.3x</span></label>
+        <input type="range" id="pulse-speed" min="0.0" max="10.0" step="0.1" value="0.3">
 
-    <label for="scanner-toggle" style="display: flex; align-items: center; cursor: pointer;">
-      <input type="checkbox" id="scanner-toggle" style="margin-right: 8px; width: auto;">
-      Scanner Beam
-    </label>
+        <label for="pulse-intensity">Pulse Intensity: <span id="pulse-intensity-value">0.3x</span></label>
+        <input type="range" id="pulse-intensity" min="0.0" max="5.0" step="0.1" value="0.3">
+
+        <label for="breathe-speed">Breathe Speed: <span id="breathe-speed-value">0.3x</span></label>
+        <input type="range" id="breathe-speed" min="0.0" max="3.0" step="0.1" value="0.3">
+
+        <label for="scanner-toggle" style="display: flex; align-items: center; cursor: pointer; margin-top: 10px;">
+          <input type="checkbox" id="scanner-toggle" style="margin-right: 8px; width: auto;">
+          Scanner Beam
+        </label>
+      </div>
+    </div>
   </div>
 
   <script>
@@ -1097,6 +1177,11 @@
         });
       }
     });
+    // Settings Toggle Logic
+    function toggleSettings() {
+      var panel = document.getElementById('settings-panel');
+      panel.classList.toggle('active');
+    }
   </script>
 </body>
 

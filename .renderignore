@@ -1,0 +1,10 @@
+# Ignore development files
+__pycache__/
+*.pyc
+.git/
+.vscode/
+node_modules/
+.env
+
+# Ignore large test files (optional - remove if you want example PDB files)
+# test_data/

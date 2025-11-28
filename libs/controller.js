@@ -188,7 +188,7 @@ PDB.controller = {
     //upload button
     var b_upload = document.getElementById("upload_button");
 
-    b_upload.addEventListener('change', function () {
+    b_upload && b_upload.addEventListener('change', function () {
       if (this.files.length > 0) {
         var file = this.files[0];
         if (file.name.endsWith("gz")) {

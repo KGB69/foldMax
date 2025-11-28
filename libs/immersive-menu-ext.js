@@ -239,6 +239,44 @@
                 }
                 return;
             }
+
+            // CanvasUI Navigation (Keyboard Fallback)
+            if (typeof CanvasUI !== 'undefined' && CanvasUI.mesh && CanvasUI.mesh.visible) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                // W/S Keys: Adjust menu distance
+                if (e.code === 'KeyW') {
+                    CanvasUI.menuDistance = Math.max(2, CanvasUI.menuDistance - 0.5);
+                    CanvasUI.show();
+                    console.log('[CanvasUI] Menu distance:', CanvasUI.menuDistance);
+                    return;
+                } else if (e.code === 'KeyS') {
+                    CanvasUI.menuDistance = Math.min(15, CanvasUI.menuDistance + 0.5);
+                    CanvasUI.show();
+                    console.log('[CanvasUI] Menu distance:', CanvasUI.menuDistance);
+                    return;
+                }
+
+                // Arrow Keys: Navigate menu buttons
+                switch (e.code) {
+                    case 'ArrowUp':
+                        CanvasUI.navigate('up');
+                        break;
+                    case 'ArrowDown':
+                        CanvasUI.navigate('down');
+                        break;
+                    case 'ArrowLeft':
+                        CanvasUI.navigate('left');
+                        break;
+                    case 'ArrowRight':
+                        CanvasUI.navigate('right');
+                        break;
+                    case 'Enter':
+                        CanvasUI.selectCurrent();
+                        break;
+                }
+            }
         });
 
         // Expose functions globally

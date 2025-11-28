@@ -41,6 +41,7 @@ var progress0 = 0;
 var prevTime0 = performance.now();
 //================================
 var tmpTime = 0;
+var clock = new THREE.Clock();
 
 var ThumbpadAxes = [];
 var id = 0;
@@ -2103,6 +2104,50 @@ PDB.render = {
           PDB.drugMoveTime = new Date();
         }
       }
+
+      // VR Controller Polling for CanvasUI Navigation
+      if (typeof CanvasUI !== 'undefined' && CanvasUI.mesh && CanvasUI.mesh.visible) {
+        var session = renderer.xr.getSession();
+        if (session) {
+          for (var i = 0; i < session.inputSources.length; i++) {
+            var source = session.inputSources[i];
+            if (source.gamepad) {
+              var gp = source.gamepad;
+
+              // Joystick Navigation (Axes 2 & 3 usually)
+              // Threshold for activation
+              var threshold = 0.5;
+              var now = Date.now();
+
+              // Simple debounce
+              if (!this.lastNavTime || now - this.lastNavTime > 300) {
+                if (gp.axes[3] > threshold) { // Down
+                  CanvasUI.navigate('down');
+                  this.lastNavTime = now;
+                } else if (gp.axes[3] < -threshold) { // Up
+                  CanvasUI.navigate('up');
+                  this.lastNavTime = now;
+                } else if (gp.axes[2] > threshold) { // Right
+                  CanvasUI.navigate('right');
+                  this.lastNavTime = now;
+                } else if (gp.axes[2] < -threshold) { // Left
+                  CanvasUI.navigate('left');
+                  this.lastNavTime = now;
+                }
+              }
+
+              // Button Selection (Button 0 - Trigger or A)
+              if (gp.buttons[0] && gp.buttons[0].pressed) {
+                if (!this.lastSelectTime || now - this.lastSelectTime > 500) {
+                  CanvasUI.selectCurrent();
+                  this.lastSelectTime = now;
+                }
+              }
+            }
+          }
+        }
+      }
+
       listen_button();
       renderer.render(scene, camera);
 
@@ -2429,6 +2474,27 @@ PDB.render = {
       //vrControls.update();
       //PDB.render.render();
       //vrEffect.requestAnimationFrame( PDB.render.animate );
+
+      // Update PlayerControls with delta time
+      var delta = clock.getDelta();
+
+      // Map VR Controller Inputs to PlayerControls (Simple WASD mapping)
+      if (typeof ThumbpadAxes !== 'undefined' && ThumbpadAxes.length >= 2) {
+        var x = ThumbpadAxes[0];
+        var y = ThumbpadAxes[1];
+        // Deadzone of 0.2
+        if (typeof PlayerControls !== 'undefined') {
+          PlayerControls.moveRight = x > 0.2;
+          PlayerControls.moveLeft = x < -0.2;
+          PlayerControls.moveBackward = y > 0.2;
+          PlayerControls.moveForward = y < -0.2;
+        }
+      }
+
+      if (typeof PlayerControls !== 'undefined') {
+        PlayerControls.update(delta);
+      }
+
       renderer.setAnimationLoop(PDB.render.render);
     } else {
       requestAnimationFrame(PDB.render.animate);

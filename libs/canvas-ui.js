@@ -13,6 +13,7 @@ var CanvasUI = {
     width: 1024,
     height: 1024,
     currentTab: 'main', // 'main', 'structure', 'ligand', 'display'
+    menuDistance: 10.5, // Distance from camera, adjustable with W/S
 
     init: function () {
         console.log('[CanvasUI] Initializing...');
@@ -21,6 +22,7 @@ var CanvasUI = {
         this.canvas.width = this.width;
         this.canvas.height = this.height;
         this.context = this.canvas.getContext('2d');
+        this.buttons = []; // Reinitialize buttons array
 
         this.texture = new THREE.CanvasTexture(this.canvas);
         this.texture.minFilter = THREE.LinearFilter;
@@ -39,8 +41,22 @@ var CanvasUI = {
         this.mesh.renderOrder = 999;
         this.mesh.userData = { isCanvasUI: true };
 
+        // Create Dimmer (Black Sphere)
+        var dimmerGeo = new THREE.SphereGeometry(10, 32, 32);
+        var dimmerMat = new THREE.MeshBasicMaterial({
+            color: 0x000000,
+            transparent: true,
+            opacity: 0.7,
+            side: THREE.BackSide,
+            depthTest: false
+        });
+        this.dimmerMesh = new THREE.Mesh(dimmerGeo, dimmerMat);
+        this.dimmerMesh.visible = false;
+        this.dimmerMesh.renderOrder = 998; // Behind menu
+
         if (typeof scene !== 'undefined') {
             scene.add(this.mesh);
+            // Dimmer is added to camera in show() to follow user
         }
 
         this.draw();
@@ -51,6 +67,9 @@ var CanvasUI = {
         var ctx = this.context;
         var w = this.width;
         var h = this.height;
+
+        // Clear buttons array to prevent overlap between tabs
+        this.buttons = [];
 
         ctx.clearRect(0, 0, w, h);
 
@@ -72,6 +91,9 @@ var CanvasUI = {
         this.registerButton('close', 900, 70, 60, 60, function () { CanvasUI.hide(); });
         this.drawButton(ctx, '✕', 900, 70, 60, 60, 'rgba(255, 50, 50, 0.8)', 40);
 
+        // Draw Selection Highlight
+        this.drawSelection(ctx);
+
         this.texture.needsUpdate = true;
     },
 
@@ -83,7 +105,7 @@ var CanvasUI = {
         ctx.font = 'bold 50px Arial';
         ctx.fillStyle = '#00ffff';
         ctx.textAlign = 'left';
-        ctx.fillText('VR Controls', 80, 110);
+        ctx.fillText('Menu', 80, 110);
 
         // Tabs (below header)
         var tabY = 170;
@@ -136,6 +158,12 @@ var CanvasUI = {
             case 'display':
                 this.drawDisplayTab(ctx, contentY);
                 break;
+            case 'color':
+                this.drawColorTab(ctx, contentY);
+                break;
+            case 'analysis':
+                this.drawAnalysisTab(ctx, contentY);
+                break;
         }
     },
 
@@ -150,32 +178,41 @@ var CanvasUI = {
         this.drawSectionTitle(ctx, 'File Operations', x, y);
         y += 60;
 
-        this.registerButton('load_pdb', x, y, btnW, btnH, function () {
-            if (typeof ImmersiveMenuExt !== 'undefined') ImmersiveMenuExt.showFileDialog();
-        });
-        this.drawButton(ctx, '📁 Load PDB File', x, y, btnW, btnH, 'rgba(0, 150, 255, 0.4)');
-        y += btnH + gap;
+        // Removed "Load PDB File" as per user request (VR compatibility)
+
+        // Center the "Enter PDB ID" button since it's the only one now
+        var centerX = x + (btnW + gap) / 2 - btnW / 2; // Correct centering logic if btnW is full width, but here btnW is 844 which is full width? 
+        // Wait, btnW 844 is full width (924 - 80 = 844). So x is fine.
 
         this.registerButton('enter_pdb', x, y, btnW, btnH, function () {
-            console.log('[CanvasUI] Enter PDB ID - TODO: Implement input dialog');
+            if (typeof ImmersiveMenuExt !== 'undefined') {
+                CanvasUI.hide(); // Hide menu to show file dialog
+                ImmersiveMenuExt.showFileDialog();
+            }
         });
-        this.drawButton(ctx, '🔤 Enter PDB ID', x, y, btnW, btnH, 'rgba(0, 150, 255, 0.4)');
-        y += btnH + gap + 40;
+        this.drawButton(ctx, '🔤 Load PDB by ID', x, y, btnW, btnH, 'rgba(0, 150, 255, 0.4)');
+    },
 
-        // Section: Quick Actions
-        this.drawSectionTitle(ctx, 'Quick Actions', x, y);
-        y += 60;
+    changeStructure: function (mode) {
+        if (typeof PDB === 'undefined' || !PDB.controller) return;
 
-        this.registerButton('exit_vr', x, y, btnW, btnH, function () {
-            if (typeof PDB !== 'undefined') PDB.render.changeToThreeMode(PDB.MODE_THREE, false);
-        });
-        this.drawButton(ctx, '🖥️ Exit VR Mode', x, y, btnW, btnH, 'rgba(255, 100, 100, 0.4)');
+        if (mode === 'surface') {
+            // Surface mode requires special handling
+            PDB.render.clear(5);
+            PDB.CHANGESTYLE = 0;
+            // Default to VDW surface (type 1)
+            PDB.controller.refreshSurface(PDB.config.surfaceMode, 1, PDB.SURFACE_OPACITY || 0.8, PDB.SURFACE_WIREFRAME || false);
+        } else {
+            // Standard modes
+            PDB.config.mainMode = mode;
+            PDB.controller.refreshGeometryByMode(mode);
+        }
     },
 
     drawStructureTab: function (ctx, startY) {
-        var btnW = 260;
+        var btnW = 260; // Adjusted for 3 columns
         var btnH = 80;
-        var gap = 25;
+        var gap = 30;
         var x = 80;
         var y = startY;
 
@@ -183,18 +220,19 @@ var CanvasUI = {
         y += 60;
 
         // Row 1
+        var self = this;
         this.registerButton('sphere', x, y, btnW, btnH, function () {
-            if (typeof PDB !== 'undefined') PDB.render.changeStructure(PDB.SPHERE);
+            self.changeStructure(PDB.SPHERE);
         });
         this.drawButton(ctx, 'Sphere', x, y, btnW, btnH, 'rgba(100, 200, 100, 0.4)', 32);
 
         this.registerButton('stick', x + btnW + gap, y, btnW, btnH, function () {
-            if (typeof PDB !== 'undefined') PDB.render.changeStructure(PDB.STICK);
+            self.changeStructure(PDB.STICK);
         });
         this.drawButton(ctx, 'Stick', x + btnW + gap, y, btnW, btnH, 'rgba(100, 200, 100, 0.4)', 32);
 
         this.registerButton('ballrod', x + (btnW + gap) * 2, y, btnW, btnH, function () {
-            if (typeof PDB !== 'undefined') PDB.render.changeStructure(PDB.BALL_ROD);
+            self.changeStructure(PDB.BALL_AND_ROD);
         });
         this.drawButton(ctx, 'Ball & Rod', x + (btnW + gap) * 2, y, btnW, btnH, 'rgba(100, 200, 100, 0.4)', 32);
 
@@ -205,12 +243,12 @@ var CanvasUI = {
         y += 60;
 
         this.registerButton('cartoon', x, y, btnW, btnH, function () {
-            console.log('[CanvasUI] Cartoon mode - TODO: Implement');
+            self.changeStructure(PDB.CARTOON_SSE);
         });
         this.drawButton(ctx, 'Cartoon', x, y, btnW, btnH, 'rgba(100, 200, 100, 0.4)', 32);
 
         this.registerButton('surface', x + btnW + gap, y, btnW, btnH, function () {
-            console.log('[CanvasUI] Surface mode - TODO: Implement');
+            self.changeStructure('surface');
         });
         this.drawButton(ctx, 'Surface', x + btnW + gap, y, btnW, btnH, 'rgba(100, 200, 100, 0.4)', 32);
     },
@@ -226,21 +264,29 @@ var CanvasUI = {
         y += 60;
 
         this.registerButton('show_ligands', x, y, btnW, btnH, function () {
-            console.log('[CanvasUI] Show all ligands - TODO: Implement');
+            if (typeof PDB !== 'undefined') {
+                PDB.config.hetMode = PDB.HET_BALL_ROD;
+                PDB.controller.refreshGeometryByMode(PDB.config.hetMode);
+            }
         });
         this.drawButton(ctx, '🔬 Show All Ligands', x, y, btnW, btnH, 'rgba(255, 150, 50, 0.4)');
         y += btnH + gap;
 
         this.registerButton('hide_ligands', x, y, btnW, btnH, function () {
-            console.log('[CanvasUI] Hide ligands - TODO: Implement');
+            if (typeof PDB !== 'undefined') {
+                PDB.config.hetMode = 0; // HIDE
+                PDB.controller.refreshGeometryByMode(PDB.config.hetMode);
+            }
         });
         this.drawButton(ctx, '👁️ Hide Ligands', x, y, btnW, btnH, 'rgba(255, 150, 50, 0.4)');
         y += btnH + gap;
 
-        this.registerButton('highlight_binding', x, y, btnW, btnH, function () {
-            console.log('[CanvasUI] Highlight binding site - TODO: Implement');
+        this.registerButton('binding_site', x, y, btnW, btnH, function () {
+            if (typeof PDB !== 'undefined') {
+                PDB.painter.showDrugSurface(PDB.config.selectedDrug);
+            }
         });
-        this.drawButton(ctx, '✨ Highlight Binding Site', x, y, btnW, btnH, 'rgba(255, 150, 50, 0.4)');
+        this.drawButton(ctx, '💊 Highlight Binding Site', x, y, btnW, btnH, 'rgba(255, 150, 50, 0.4)');
     },
 
     drawDisplayTab: function (ctx, startY) {
@@ -255,27 +301,120 @@ var CanvasUI = {
 
         // Row 1
         this.registerButton('show_labels', x, y, btnW, btnH, function () {
-            console.log('[CanvasUI] Show labels - TODO: Implement');
+            if (typeof PDB !== 'undefined' && PDB.controller) {
+                PDB.controller.showLabel();
+            }
         });
         this.drawButton(ctx, '🏷️ Labels', x, y, btnW, btnH, 'rgba(200, 100, 255, 0.4)', 32);
 
         this.registerButton('show_bonds', x + btnW + gap, y, btnW, btnH, function () {
-            console.log('[CanvasUI] Toggle bonds - TODO: Implement');
+            if (typeof PDB !== 'undefined' && PDB.controller) {
+                var mode = PDB.controller.showHetAtm_state === PDB.SHOWCPK ? PDB.HIDEHET : PDB.SHOWCPK;
+                PDB.controller.changeShowhet(mode);
+            }
         });
-        this.drawButton(ctx, '🔗 Bonds', x + btnW + gap, y, btnW, btnH, 'rgba(200, 100, 255, 0.4)', 32);
+        this.drawButton(ctx, '🔗 Bonds/Het', x + btnW + gap, y, btnW, btnH, 'rgba(200, 100, 255, 0.4)', 32);
 
         y += btnH + gap;
 
         // Row 2
         this.registerButton('show_hbonds', x, y, btnW, btnH, function () {
-            console.log('[CanvasUI] Show H-bonds - TODO: Implement');
+            console.log('[CanvasUI] H-Bonds - Feature not exposed in PDB API');
         });
         this.drawButton(ctx, '⚡ H-Bonds', x, y, btnW, btnH, 'rgba(200, 100, 255, 0.4)', 32);
 
         this.registerButton('measure', x + btnW + gap, y, btnW, btnH, function () {
-            console.log('[CanvasUI] Measurement mode - TODO: Implement');
+            if (typeof PDB !== 'undefined' && PDB.tool) {
+                PDB.tool.setMeasureDistance();
+            }
         });
-        this.drawButton(ctx, '📏 Measure', x + btnW + gap, y, btnW, btnH, 'rgba(200, 100, 255, 0.4)', 32);
+        this.drawButton(ctx, '📏 Measure Distance', x + btnW + gap, y, btnW, btnH, 'rgba(200, 100, 255, 0.4)', 32);
+    },
+
+    drawColorTab: function (ctx, startY) {
+        var btnW = 400;
+        var btnH = 80;
+        var gap = 24;
+        var x = 80;
+        var y = startY;
+
+        this.drawSectionTitle(ctx, 'Coloring Schemes', x, y);
+        y += 60;
+
+        // Row 1
+        this.registerButton('color_element', x, y, btnW, btnH, function () {
+            if (typeof PDB !== 'undefined' && PDB.controller) {
+                PDB.controller.switchColorBymode(PDB.COLORELEMENT);
+            }
+        });
+        this.drawButton(ctx, '🌈 By Element', x, y, btnW, btnH, 'rgba(255, 50, 150, 0.4)', 32);
+
+        this.registerButton('color_chain', x + btnW + gap, y, btnW, btnH, function () {
+            if (typeof PDB !== 'undefined' && PDB.controller) {
+                PDB.controller.switchColorBymode(PDB.COLORENTITY);
+            }
+        });
+        this.drawButton(ctx, '🔗 By Chain', x + btnW + gap, y, btnW, btnH, 'rgba(255, 50, 150, 0.4)', 32);
+
+        y += btnH + gap;
+
+        // Row 2
+        this.registerButton('color_residue', x, y, btnW, btnH, function () {
+            if (typeof PDB !== 'undefined' && PDB.controller) {
+                PDB.controller.switchColorBymode(PDB.COLORMODE_RS);
+            }
+        });
+        this.drawButton(ctx, '🧬 By Residue', x, y, btnW, btnH, 'rgba(255, 50, 150, 0.4)', 32);
+
+        this.registerButton('color_bfactor', x + btnW + gap, y, btnW, btnH, function () {
+            if (typeof PDB !== 'undefined' && PDB.controller) {
+                PDB.controller.switchColorBymode(PDB.B_FACTOR);
+            }
+        });
+        this.drawButton(ctx, '📊 By B-Factor', x + btnW + gap, y, btnW, btnH, 'rgba(255, 50, 150, 0.4)', 32);
+    },
+
+    drawAnalysisTab: function (ctx, startY) {
+        var btnW = 400;
+        var btnH = 80;
+        var gap = 24;
+        var x = 80;
+        var y = startY;
+
+        this.drawSectionTitle(ctx, 'Analysis Tools', x, y);
+        y += 60;
+
+        // Row 1
+        this.registerButton('measure_distance', x, y, btnW, btnH, function () {
+            if (typeof PDB !== 'undefined' && PDB.tool) {
+                PDB.tool.setMeasureDistance();
+            }
+        });
+        this.drawButton(ctx, '📏 Distance', x, y, btnW, btnH, 'rgba(255, 200, 0, 0.4)', 32);
+
+        this.registerButton('measure_angle', x + btnW + gap, y, btnW, btnH, function () {
+            if (typeof PDB !== 'undefined' && PDB.tool) {
+                PDB.tool.setMeasureAngle();
+            }
+        });
+        this.drawButton(ctx, '📐 Angle', x + btnW + gap, y, btnW, btnH, 'rgba(255, 200, 0, 0.4)', 32);
+
+        y += btnH + gap;
+
+        // Row 2
+        this.registerButton('drag_tool', x, y, btnW, btnH, function () {
+            if (typeof PDB !== 'undefined' && PDB.tool) {
+                PDB.tool.setDrag();
+            }
+        });
+        this.drawButton(ctx, '✋ Drag Molecule', x, y, btnW, btnH, 'rgba(255, 200, 0, 0.4)', 32);
+
+        this.registerButton('center_view', x + btnW + gap, y, btnW, btnH, function () {
+            if (typeof PDB !== 'undefined' && PDB.controller) {
+                PDB.controller.centerAtoms();
+            }
+        });
+        this.drawButton(ctx, '🎯 Center View', x + btnW + gap, y, btnW, btnH, 'rgba(255, 200, 0, 0.4)', 32);
     },
 
     drawSectionTitle: function (ctx, title, x, y) {
@@ -394,6 +533,41 @@ var CanvasUI = {
         this.texture.needsUpdate = true;
     },
 
+    selectedIndex: -1,
+
+    navigate: function (direction) {
+        if (!this.mesh.visible || this.buttons.length === 0) return;
+        if (this.selectedIndex === -1) {
+            this.selectedIndex = 0;
+        } else {
+            if (direction === 'next' || direction === 'right' || direction === 'down') {
+                this.selectedIndex = (this.selectedIndex + 1) % this.buttons.length;
+            } else if (direction === 'prev' || direction === 'left' || direction === 'up') {
+                this.selectedIndex = (this.selectedIndex - 1 + this.buttons.length) % this.buttons.length;
+            }
+        }
+        this.draw();
+        console.log('[CanvasUI] Selected:', this.buttons[this.selectedIndex].id);
+    },
+
+    selectCurrent: function () {
+        if (!this.mesh.visible || this.selectedIndex === -1 || !this.buttons[this.selectedIndex]) return;
+        var b = this.buttons[this.selectedIndex];
+        console.log('[CanvasUI] Selecting current:', b.id);
+        this.highlightButton(b);
+        if (b.callback) b.callback();
+    },
+
+    drawSelection: function (ctx) {
+        if (this.selectedIndex >= 0 && this.selectedIndex < this.buttons.length) {
+            var b = this.buttons[this.selectedIndex];
+            ctx.lineWidth = 6;
+            ctx.strokeStyle = '#ffff00';
+            this.drawRoundedRect(ctx, b.x - 5, b.y - 5, b.w + 10, b.h + 10, 20);
+            ctx.stroke();
+        }
+    },
+
     show: function () {
         if (!this.mesh) return;
 
@@ -403,22 +577,43 @@ var CanvasUI = {
 
         this.mesh.visible = true;
 
+        // Lock player movement when menu is open
+        if (typeof PlayerControls !== 'undefined') {
+            PlayerControls.movementLocked = true;
+        }
+
         if (typeof camera !== 'undefined') {
-            var dist = 6;
             var dir = new THREE.Vector3();
             camera.getWorldDirection(dir);
             var pos = new THREE.Vector3();
             pos.copy(camera.position);
-            pos.add(dir.multiplyScalar(dist));
+            pos.add(dir.multiplyScalar(this.menuDistance));
             this.mesh.position.copy(pos);
             this.mesh.lookAt(camera.position);
 
-            console.log('[CanvasUI] Menu shown at:', pos);
+            console.log('[CanvasUI] Menu shown at:', pos, 'distance:', this.menuDistance);
+
+            // Show Dimmer
+            if (this.dimmerMesh) {
+                camera.add(this.dimmerMesh);
+                this.dimmerMesh.visible = true;
+            }
         }
     },
 
     hide: function () {
         if (this.mesh) this.mesh.visible = false;
+
+        // Unlock player movement when menu is closed
+        if (typeof PlayerControls !== 'undefined') {
+            PlayerControls.movementLocked = false;
+        }
+
+        // Hide Dimmer
+        if (this.dimmerMesh) {
+            this.dimmerMesh.visible = false;
+            if (this.dimmerMesh.parent) this.dimmerMesh.parent.remove(this.dimmerMesh);
+        }
     },
 
     toggle: function () {
