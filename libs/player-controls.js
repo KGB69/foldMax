@@ -181,51 +181,38 @@ var PlayerControls = {
             this.velocity.x = (this.velocity.x / currentSpeed) * maxSpeed;
             this.velocity.z = (this.velocity.z / currentSpeed) * maxSpeed;
         }
-
-        // Move
-        // In VR mode, move the playerRig (parent) instead of camera
-        // In desktop mode, move the camera directly
-        var isVR = (typeof window.renderer !== 'undefined' && window.renderer.xr && window.renderer.xr.isPresenting);
-        var targetObject = (isVR && typeof window.playerRig !== 'undefined') ? window.playerRig : this.camera;
-
-        targetObject.position.x += this.velocity.x * delta;
-        targetObject.position.z += this.velocity.z * delta;
-
-        // Circular Boundary Collision
-        var groundRadius = window.GROUND_RADIUS || 250;
-        var distFromCenter = Math.sqrt(
-            targetObject.position.x * targetObject.position.x +
+        targetObject.position.x * targetObject.position.x +
             targetObject.position.z * targetObject.position.z
         );
 
-        if (distFromCenter > groundRadius) {
-            // Push back to edge
-            var angle = Math.atan2(targetObject.position.z, targetObject.position.x);
-            targetObject.position.x = Math.cos(angle) * groundRadius;
-            targetObject.position.z = Math.sin(angle) * groundRadius;
+if (distFromCenter > groundRadius) {
+    // Push back to edge
+    var angle = Math.atan2(targetObject.position.z, targetObject.position.x);
+    targetObject.position.x = Math.cos(angle) * groundRadius;
+    targetObject.position.z = Math.sin(angle) * groundRadius;
 
-            // Stop velocity
-            this.velocity.set(0, 0, 0);
-        }
+    // Stop velocity
+    this.velocity.set(0, 0, 0);
+}
 
-        targetObject.position.y = this.playerHeight; // Final lock to user-set height
+targetObject.position.y = this.playerHeight; // Final lock to user-set height
     },
 
-    // Lock movement for focus mode
-    lockMovement: function () {
-        this.movementLocked = true;
-        // Stop all current movement
-        this.moveForward = false;
-        this.moveBackward = false;
-        this.moveLeft = false;
-        this.moveRight = false;
-        this.velocity.set(0, 0, 0);
-        console.log('[PlayerControls] Movement locked');
-    },
+// Lock movement for focus mode
+lockMovement: function () {
+    this.movementLocked = true;
+    // Stop all current movement
+    this.moveForward = false;
+    this.moveBackward = false;
+    this.moveLeft = false;
+    this.moveRight = false;
+    this.velocity.set(0, 0, 0);
+    console.log('[PlayerControls] Movement locked');
+},
 
-    // Unlock movement
-    unlockMovement: function () {
-        this.movementLocked = false;
-        console.log('[PlayerControls] Movement unlocked');
-    }
+// Unlock movement
+unlockMovement: function () {
+    this.movementLocked = false;
+    console.log('[PlayerControls] Movement unlocked');
+}
 };

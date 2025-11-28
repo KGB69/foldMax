@@ -77,12 +77,19 @@ function process_button(type, component, componentId) {
         STATE[type] = 1;
         break;
       case Constants.ComponentType.BUTTON:
-        // Check for B button (or Y button on left)
+        // B or Y button toggles Canvas UI menu
         if (componentId === 'b-button' || componentId === 'y-button' || componentId === 'b_button' || componentId === 'y_button') {
           if (typeof CanvasUI !== 'undefined') {
             CanvasUI.toggle();
           }
-        } else {
+        }
+        // X or A button toggles VR Debug Console
+        else if (componentId === 'x-button' || componentId === 'a-button' || componentId === 'x_button' || componentId === 'a_button') {
+          if (typeof VRDebugConsole !== 'undefined') {
+            VRDebugConsole.toggle();
+          }
+        }
+        else {
           onMenuDown(event);
         }
         DOING = 1;
@@ -1655,6 +1662,11 @@ PDB.render = {
       console.log('[RENDER] Canvas UI initialized');
     }
 
+    // Initialize VR Debug Console
+    if (typeof VRDebugConsole !== 'undefined') {
+      VRDebugConsole.init();
+    }
+
     renderer.xr.addEventListener('sessionstart', () => { isImmersive = true; });
     renderer.xr.addEventListener('sessionend', () => { isImmersive = false; });
 
@@ -2493,6 +2505,13 @@ PDB.render = {
       if (typeof ThumbpadAxes !== 'undefined' && ThumbpadAxes.length >= 2) {
         var x = ThumbpadAxes[0];
         var y = ThumbpadAxes[1];
+
+        // DEBUG: Log thumbstick values every 60 frames (avoid spam)
+        if (typeof window.debugFrameCount === 'undefined') window.debugFrameCount = 0;
+        if (window.debugFrameCount++ % 60 === 0 && (Math.abs(x) > 0.01 || Math.abs(y) > 0.01)) {
+          console.log('[VR DEBUG] Thumbstick:', 'x:', x.toFixed(2), 'y:', y.toFixed(2));
+        }
+
         // Deadzone of 0.2
         if (typeof PlayerControls !== 'undefined') {
           PlayerControls.moveRight = x > 0.2;
@@ -2504,6 +2523,11 @@ PDB.render = {
 
       if (typeof PlayerControls !== 'undefined') {
         PlayerControls.update(delta);
+
+        // DEBUG: Log rig position every 60 frames
+        if (typeof window.playerRig !== 'undefined' && window.debugFrameCount % 60 === 0) {
+          console.log('[VR DEBUG] Rig position:', window.playerRig.position.x.toFixed(2), window.playerRig.position.y.toFixed(2), window.playerRig.position.z.toFixed(2));
+        }
       }
 
       renderer.setAnimationLoop(PDB.render.render);
