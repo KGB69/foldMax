@@ -1598,14 +1598,25 @@ PDB.render = {
     // Use 75° FOV for VR (better immersion), 10° for desktop (molecule inspection)
     var initialFOV = window.location.search.includes('vmode=vr') ? 75 : 10;
     camera = new THREE.PerspectiveCamera(initialFOV, window.innerWidth / window.innerHeight, 0.1, 50000);
+
+    // Create Player Rig for VR locomotion
+    // In WebXR, the camera position is controlled by headset tracking.
+    // To enable movement, we create a rig (parent object) and move that instead.
+    window.playerRig = new THREE.Group();
+    window.playerRig.name = 'PlayerRig';
+
     // VR: start closer (Z=50) and at eye level (Y=1.6)
     // Desktop: start far (Z=300) for overview
     if (window.location.search.includes('vmode=vr')) {
-      camera.position.set(0, 1.6, 50);
+      window.playerRig.position.set(0, 1.6, 50);
+      camera.position.set(0, 0, 0); // Camera at rig origin
     } else {
       camera.position.set(0, 1.6, 300);
     }
-    scene.add(camera);
+
+    // Add camera to rig, then rig to scene
+    window.playerRig.add(camera);
+    scene.add(window.playerRig);
     //controls
     // DISABLED: OrbitControls conflicts with PlayerControls
     // controls = new THREE.OrbitControls(camera, container);

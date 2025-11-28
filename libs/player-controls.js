@@ -183,27 +183,32 @@ var PlayerControls = {
         }
 
         // Move
-        this.camera.position.x += this.velocity.x * delta;
-        this.camera.position.z += this.velocity.z * delta;
+        // In VR mode, move the playerRig (parent) instead of camera
+        // In desktop mode, move the camera directly
+        var isVR = (typeof window.renderer !== 'undefined' && window.renderer.xr && window.renderer.xr.isPresenting);
+        var targetObject = (isVR && typeof window.playerRig !== 'undefined') ? window.playerRig : this.camera;
+
+        targetObject.position.x += this.velocity.x * delta;
+        targetObject.position.z += this.velocity.z * delta;
 
         // Circular Boundary Collision
         var groundRadius = window.GROUND_RADIUS || 250;
         var distFromCenter = Math.sqrt(
-            this.camera.position.x * this.camera.position.x +
-            this.camera.position.z * this.camera.position.z
+            targetObject.position.x * targetObject.position.x +
+            targetObject.position.z * targetObject.position.z
         );
 
         if (distFromCenter > groundRadius) {
             // Push back to edge
-            var angle = Math.atan2(this.camera.position.z, this.camera.position.x);
-            this.camera.position.x = Math.cos(angle) * groundRadius;
-            this.camera.position.z = Math.sin(angle) * groundRadius;
+            var angle = Math.atan2(targetObject.position.z, targetObject.position.x);
+            targetObject.position.x = Math.cos(angle) * groundRadius;
+            targetObject.position.z = Math.sin(angle) * groundRadius;
 
             // Stop velocity
             this.velocity.set(0, 0, 0);
         }
 
-        this.camera.position.y = this.playerHeight; // Final lock to user-set height
+        targetObject.position.y = this.playerHeight; // Final lock to user-set height
     },
 
     // Lock movement for focus mode
