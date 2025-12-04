@@ -35,7 +35,7 @@ PDB.loader = {
 
         PDB.GROUP[gindex].userData["presentAtom"] = PDB.tool.getMainAtom(PDB.pdbId, first_atomid);
         if (!PDB.pptShow) {
-          scene.add(PDB.GROUP[gindex]);
+          (PDB.scene || scene).add(PDB.GROUP[gindex]);
         }
         PDB.GROUP_MAIN_INDEX.push(gindex);
         PDB.GROUP_STRUCTURE_INDEX.push(gindex);
@@ -49,7 +49,7 @@ PDB.loader = {
           PDB.GROUP[gindex_low].userData["type"] = 'low';
           PDB.GROUP[gindex_low].userData["presentAtom"] = PDB.tool.getMainAtom(PDB.pdbId, first_atomid);
           if (!PDB.pptShow) {
-            scene.add(PDB.GROUP[gindex_low]);
+            (PDB.scene || scene).add(PDB.GROUP[gindex_low]);
           }
           PDB.GROUP_MAIN_INDEX.push(gindex_low);
           PDB.GROUP_STRUCTURE_INDEX.push(gindex_low);
@@ -82,7 +82,10 @@ PDB.loader = {
         window.loadEnvironmentModel();
       }
 
+      console.log('[PDB.loader] About to call callback function');
+      console.log('[PDB.loader] Callback type:', typeof callBack);
       callBack();
+      console.log('[PDB.loader] Callback executed successfully');
     });
   },
   loadFromDisk: function (file, callBack) {
@@ -133,7 +136,7 @@ PDB.loader = {
           PDB.GROUP[gindex_low].userData["type"] = 'low';
           PDB.GROUP[gindex_low].userData["presentAtom"] = PDB.tool.getMainAtom(PDB.pdbId, first_atomid);
           if (!PDB.pptShow) {
-            scene.add(PDB.GROUP[gindex_low]);
+            (PDB.scene || scene).add(PDB.GROUP[gindex_low]);
           }
           PDB.GROUP_MAIN_INDEX.push(gindex_low);
           PDB.GROUP_STRUCTURE_INDEX.push(gindex_low);
@@ -236,8 +239,12 @@ PDB.loader = {
     $.extend(true, PDB.limit, limit); //copy from w3m.limit
     var offset = new THREE.Vector3(x, y, z);
     PDB.GeoCenterOffset = offset;
-    PDB.GROUP[PDB.GROUP_BOX_HELPER].visible = false;
-    PDB.painter.showBoxHelper();
+
+    // Safety check: only set visible if GROUP exists
+    if (PDB.GROUP[PDB.GROUP_BOX_HELPER]) {
+      PDB.GROUP[PDB.GROUP_BOX_HELPER].visible = false;
+      PDB.painter.showBoxHelper();
+    }
 
     return offset;
   },

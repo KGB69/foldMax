@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>VRmol - A-Frame Edition</title>
+    <meta name="description" content="VRmol ported to A-Frame">
+
+    <!-- A-Frame (Includes Three.js) -->
+    <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+
+    <!-- Libraries -->
+    <script src="js/libs/jquery-1.9.1.min.js"></script>
+
+    <!-- VRmol Core Libs -->
+    <script src="libs/extension.js"></script>
+    <script src="libs/w3m.js"></script>
+    <script src="libs/static.js"></script>
+    <script src="libs/math.js"></script>
+    <script src="libs/core.js"></script>
+
+    <!-- Adapter -->
+    <script src="libs/render-aframe.js"></script>
+
+    <!-- More VRmol Libs -->
+    <script src="libs/loader.js"></script>
+    <script src="libs/tool.js"></script>
+    <script src="libs/drawer.js"></script>
+    <script src="libs/painter.js"></script>
+    <script src="libs/controller.js"></script>
+    <script src="libs/pdbparser.js"></script>
+    <script src="libs/emparser.js"></script>
+    <script src="libs/surface.js"></script>
+
+    <!-- A-Frame Components -->
+    <script src="js/aframe-components/environment-component.js"></script>
+    <script src="js/aframe-components/molecular-renderer.js"></script>
+    <script src="js/aframe-components/radial-menu-component.js"></script>
+
+    <script>
+        // One-time initialization
+        window.addEventListener('load', function () {
+            if (PDB.render && PDB.render.init) {
+                PDB.render.init();
+            }
+        });
+    </script>
+</head>
+
+<body>
+    <a-scene background="color: #000">
+        <!-- Procedural Environment -->
+        <a-entity environment-loader="timeOfDay: 0.35"></a-entity>
+
+        <!-- Molecule Container -->
+        <a-entity id="molecule-root" position="0 1.6 -2" scale="0.02 0.02 0.02" molecular-renderer="pdbId: 1cbs">
+        </a-entity>
+
+        <!-- VR Controls -->
+        <a-entity id="rig" position="0 0 0">
+            <a-entity id="camera" camera look-controls wasd-controls></a-entity>
+            <a-entity oculus-touch-controls="hand: left" laser-controls="hand: left"
+                raycaster="objects: .clickable; far: 10"></a-entity>
+            <a-entity oculus-touch-controls="hand: right" laser-controls="hand: right"
+                raycaster="objects: .clickable; far: 10"></a-entity>
+        </a-entity>
+
+        <!-- Radial Menu -->
+        <a-entity id="radial-menu" radial-menu></a-entity>
+
+        <!-- Mouse Cursor for Desktop -->
+        <a-entity cursor="rayOrigin: mouse" raycaster="objects: .clickable"></a-entity>
+    </a-scene>
+
+    <!-- Hidden DOM elements for compatibility with tool.js -->
+    <div id="segmentholder" style="display:none;"></div>
+    <div id="labelContent" style="display:none;"></div>
+    <div id="labelContent_measure" style="display:none;"></div>
+    <div id="rightmenu" style="display:none;"></div>
+</body>
+
+</html>
