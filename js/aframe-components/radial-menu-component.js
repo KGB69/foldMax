@@ -47,9 +47,11 @@ AFRAME.registerComponent('radial-menu', {
         this.mesh.visible = false;
         this.mesh.renderOrder = 999;
         this.mesh.userData = { isRadialMenu: true };
+        this.mesh.classList = ['clickable']; // Enable VR raycaster interaction
 
         // Add to entity
         this.el.setObject3D('menu', this.mesh);
+        this.el.classList.add('clickable'); // Make entity clickable too
 
         // Create dimmer sphere
         this.createDimmer();
