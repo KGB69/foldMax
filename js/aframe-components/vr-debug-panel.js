@@ -28,45 +28,6 @@ AFRAME.registerComponent('vr-debug-panel', {
             side: THREE.DoubleSide
         });
 
-        // Create mesh
-        var geometry = new THREE.PlaneGeometry(2, 1);
-        this.mesh = new THREE.Mesh(geometry, material);
-        this.mesh.visible = false;
-        this.el.setObject3D('debug-panel', this.mesh);
-
-        // Position in front of camera
-        this.mesh.position.set(0, 1.5, -1.5);
-
-        // Setup keyboard toggle
-        var self = this;
-        document.addEventListener('keydown', function (e) {
-            if (e.code === 'KeyX') {
-                self.toggle();
-            }
-        });
-
-        // Initial draw
-        this.draw();
-
-        console.log('[VR Debug] Ready - Press X to toggle');
-    },
-
-    toggle: function () {
-        this.isVisible = !this.isVisible;
-        this.mesh.visible = this.isVisible;
-
-        if (this.isVisible) {
-            this.startUpdates();
-            console.log('[VR Debug] Panel shown');
-        } else {
-            this.stopUpdates();
-            console.log('[VR Debug] Panel hidden');
-        }
-    },
-
-    startUpdates: function () {
-        if (this.updateInterval) return;
-
         var self = this;
         this.updateInterval = setInterval(function () {
             self.draw();
