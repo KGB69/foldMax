@@ -37,6 +37,7 @@
     <script src="js/aframe-components/molecular-renderer.js"></script>
     <script src="js/aframe-components/radial-menu-component.js"></script>
     <script src="js/aframe-components/movement-debug.js"></script>
+    <script src="js/aframe-components/vr-debug-panel.js"></script>
 
     <script>
         // One-time initialization
@@ -68,6 +69,9 @@
 
         <!-- Radial Menu -->
         <a-entity id="radial-menu" radial-menu class="clickable"></a-entity>
+
+        <!-- VR Debug Panel (Toggle with X key) -->
+        <a-entity vr-debug-panel></a-entity>
 
         <!-- Mouse Cursor for Desktop -->
         <a-entity cursor="rayOrigin: mouse" raycaster="objects: .clickable"></a-entity>
