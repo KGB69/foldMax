@@ -57,11 +57,11 @@
         </a-entity>
 
         <!-- VR Controls -->
-        <a-entity id="rig" position="0 0 0" movement-controls="controls: gamepad; speed: 0.3">
+        <a-entity id="rig" position="0 0 0" movement-controls="fly: true; speed: 0.5">
             <a-entity id="camera" camera look-controls wasd-controls></a-entity>
-            <a-entity oculus-touch-controls="hand: left" laser-controls="hand: left"
+            <a-entity id="left-hand" oculus-touch-controls="hand: left" laser-controls="hand: left"
                 raycaster="objects: .clickable; far: 10"></a-entity>
-            <a-entity oculus-touch-controls="hand: right" laser-controls="hand: right"
+            <a-entity id="right-hand" oculus-touch-controls="hand: right" laser-controls="hand: right"
                 raycaster="objects: .clickable; far: 10"></a-entity>
         </a-entity>
 

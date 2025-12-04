@@ -39,13 +39,14 @@ AFRAME.registerComponent('radial-menu', {
             transparent: true,
             side: THREE.DoubleSide,
             alphaTest: 0.1,
-            depthTest: false
+            depthTest: true, // Enable depth testing so lasers appear correctly
+            depthWrite: true
         });
 
         var geometry = new THREE.PlaneGeometry(3, 3);
         this.mesh = new THREE.Mesh(geometry, material);
         this.mesh.visible = false;
-        this.mesh.renderOrder = 999;
+        this.mesh.renderOrder = 100; // Lower order so lasers render on top
         this.mesh.userData = { isRadialMenu: true };
         this.mesh.classList = ['clickable']; // Enable VR raycaster interaction
 
