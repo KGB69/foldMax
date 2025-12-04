@@ -36,6 +36,7 @@
     <script src="js/aframe-components/environment-component.js"></script>
     <script src="js/aframe-components/molecular-renderer.js"></script>
     <script src="js/aframe-components/radial-menu-component.js"></script>
+    <script src="js/aframe-components/movement-debug.js"></script>
 
     <script>
         // One-time initialization
@@ -57,7 +58,7 @@
         </a-entity>
 
         <!-- VR Controls -->
-        <a-entity id="rig" position="0 0 0" movement-controls="fly: true; speed: 0.5">
+        <a-entity id="rig" position="0 0 0" movement-controls="fly: true; speed: 0.5" movement-debug>
             <a-entity id="camera" camera look-controls wasd-controls></a-entity>
             <a-entity id="left-hand" oculus-touch-controls="hand: left" laser-controls="hand: left"
                 raycaster="objects: .clickable; far: 10"></a-entity>
