@@ -28,6 +28,17 @@ AFRAME.registerComponent('vr-debug-panel', {
             side: THREE.DoubleSide
         });
 
+        // Setup VR X button (left controller)
+        setTimeout(function () {
+            var leftHand = document.querySelector('#left-hand');
+            if (leftHand) {
+                leftHand.addEventListener('xbuttondown', function () {
+                    console.log('[VR Debug] X button pressed');
+                    self.toggle();
+                });
+            }
+        }, 1000);
+
         var self = this;
         this.updateInterval = setInterval(function () {
             self.draw();
