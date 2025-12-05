@@ -34,24 +34,14 @@ AFRAME.registerComponent('vr-debug-panel', {
         this.mesh.visible = true;
         this.el.setObject3D('debug-panel', this.mesh);
 
-        // Attach to camera and position in front
+        console.log('[VR Debug] Mesh created, visible:', this.mesh.visible);
+
         var self = this;
-        setTimeout(function () {
-            var camera = document.querySelector('#camera');
-            if (camera && camera.object3D) {
-                camera.object3D.add(self.mesh);
-                self.mesh.position.set(0, 0.3, -1.2); // Slightly above center, 1.2m in front
-                self.mesh.rotation.x = -0.2; // Slight tilt down for easy reading
-                console.log('[VR Debug] Panel attached to camera');
-            } else {
-                console.error('[VR Debug] Camera not found!');
-            }
-        }, 500);
 
         // Setup keyboard toggle
-        var self = this;
         document.addEventListener('keydown', function (e) {
             if (e.code === 'KeyX') {
+                console.log('[VR Debug] X key pressed, toggling panel');
                 self.toggle();
             }
         });
@@ -76,7 +66,31 @@ AFRAME.registerComponent('vr-debug-panel', {
         // Start updates
         this.startUpdates();
 
-        console.log('[VR Debug] Panel visible - showing gamepad info');
+        console.log('[VR Debug] Panel initialized - will track camera in tick()');
+    },
+
+    tick: function () {
+        // Update panel position to follow camera/VR headset
+        if (!this.mesh || !this.mesh.visible) return;
+
+        var camera = this.el.sceneEl.camera;
+        if (camera) {
+            // Get camera world position and direction
+            var cameraWorldPos = new THREE.Vector3();
+            camera.getWorldPosition(cameraWorldPos);
+
+            var cameraWorldDir = new THREE.Vector3();
+            camera.getWorldDirection(cameraWorldDir);
+
+            // Position panel 1.2m in front of camera, 0.3m down
+            var offset = cameraWorldDir.multiplyScalar(1.2);
+            this.mesh.position.copy(cameraWorldPos).add(offset);
+            this.mesh.position.y -= 0.3;
+
+            // Make panel face camera
+            this.mesh.lookAt(cameraWorldPos);
+            this.mesh.rotateY(Math.PI); // Flip to face correct direction
+        }
     },
 
     toggle: function () {
