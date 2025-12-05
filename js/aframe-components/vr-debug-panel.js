@@ -1,5 +1,5 @@
 /**
- * VR Debug Panel - Toggle with X key
+ * VR Debug Panel - Always visible debug info
  * Shows gamepad input, rig position, and movement status in VR
  */
 
@@ -9,7 +9,7 @@ AFRAME.registerComponent('vr-debug-panel', {
     init: function () {
         console.log('[VR Debug] Initializing...');
 
-        this.isVisible = false;
+        this.isVisible = true;
         this.updateInterval = null;
 
         // Create canvas
@@ -28,21 +28,66 @@ AFRAME.registerComponent('vr-debug-panel', {
             side: THREE.DoubleSide
         });
 
-        // Setup VR X button (left controller)
+        // Create mesh
+        var geometry = new THREE.PlaneGeometry(2, 1);
+        this.mesh = new THREE.Mesh(geometry, material);
+        this.mesh.visible = true;
+        this.el.setObject3D('debug-panel', this.mesh);
+
+        // Position in front of camera
+        this.mesh.position.set(0, 1.5, -1.5);
+
+        // Setup keyboard toggle
+        var self = this;
+        document.addEventListener('keydown', function (e) {
+            if (e.code === 'KeyX') {
+                self.toggle();
+            }
+        });
+
+        // Try to bind VR X button
         setTimeout(function () {
             var leftHand = document.querySelector('#left-hand');
             if (leftHand) {
                 leftHand.addEventListener('xbuttondown', function () {
-                    console.log('[VR Debug] X button pressed');
+                    console.log('[VR Debug] X button pressed!');
                     self.toggle();
                 });
+                console.log('[VR Debug] X button bound to left controller');
+            } else {
+                console.log('[VR Debug] Left controller not found yet');
             }
-        }, 1000);
+        }, 2000);
+
+        // Initial draw
+        this.draw();
+
+        // Start updates
+        this.startUpdates();
+
+        console.log('[VR Debug] Panel visible - showing gamepad info');
+    },
+
+    toggle: function () {
+        this.isVisible = !this.isVisible;
+        this.mesh.visible = this.isVisible;
+
+        if (this.isVisible) {
+            this.startUpdates();
+            console.log('[VR Debug] Panel shown');
+        } else {
+            this.stopUpdates();
+            console.log('[VR Debug] Panel hidden');
+        }
+    },
+
+    startUpdates: function () {
+        if (this.updateInterval) return;
 
         var self = this;
         this.updateInterval = setInterval(function () {
             self.draw();
-        }, 100); // Update 10 times per second
+        }, 100);
     },
 
     stopUpdates: function () {
@@ -69,7 +114,7 @@ AFRAME.registerComponent('vr-debug-panel', {
         // Title
         ctx.font = 'bold 40px monospace';
         ctx.fillStyle = '#00ff00';
-        ctx.fillText('VR DEBUG PANEL (Press X to hide)', 20, 50);
+        ctx.fillText('VR DEBUG PANEL', 20, 50);
 
         var y = 100;
         var lineHeight = 35;
