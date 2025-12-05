@@ -39,6 +39,7 @@
     <script src="js/aframe-components/movement-debug.js"></script>
     <script src="js/aframe-components/vr-debug-panel.js"></script>
     <script src="js/aframe-components/protein-manipulator.js"></script>
+    <script src="js/aframe-components/vr-console.js"></script>
 
     <script>
         // One-time initialization
@@ -73,6 +74,9 @@
 
         <!-- VR Debug Panel (Toggle with X key) -->
         <a-entity vr-debug-panel></a-entity>
+
+        <!-- VR Console - Shows logs in headset -->
+        <a-entity vr-console></a-entity>
 
         <!-- Mouse Cursor for Desktop -->
         <a-entity cursor="rayOrigin: mouse" raycaster="objects: .clickable"></a-entity>
