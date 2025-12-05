@@ -34,8 +34,19 @@ AFRAME.registerComponent('vr-debug-panel', {
         this.mesh.visible = true;
         this.el.setObject3D('debug-panel', this.mesh);
 
-        // Position in front of camera
-        this.mesh.position.set(0, 1.5, -1.5);
+        // Attach to camera and position in front
+        var self = this;
+        setTimeout(function () {
+            var camera = document.querySelector('#camera');
+            if (camera && camera.object3D) {
+                camera.object3D.add(self.mesh);
+                self.mesh.position.set(0, 0.3, -1.2); // Slightly above center, 1.2m in front
+                self.mesh.rotation.x = -0.2; // Slight tilt down for easy reading
+                console.log('[VR Debug] Panel attached to camera');
+            } else {
+                console.error('[VR Debug] Camera not found!');
+            }
+        }, 500);
 
         // Setup keyboard toggle
         var self = this;
