@@ -125,13 +125,74 @@ AFRAME.registerComponent('axis-transform-controls', {
     },
 
     showGizmos: function () {
-        // Phase 4 implementation placeholder
-        // TODO: Create/show arrow helpers
+        if (this.gizmosVisible) return;
+        this.gizmosVisible = true;
+
+        var target = this.data.target || this.el;
+        if (!target) return;
+
+        // Create gizmo container if needed
+        if (!this.gizmoGroup) {
+            this.gizmoGroup = new THREE.Group();
+            target.object3D.add(this.gizmoGroup);
+
+            // Gizmo size
+            var len = 1.0; // 1 meter
+            var headLen = 0.2;
+            var headWidth = 0.1;
+
+            // X Axis (Red)
+            var dirX = new THREE.Vector3(1, 0, 0);
+            var origin = new THREE.Vector3(0, 0, 0);
+            this.arrowX = new THREE.ArrowHelper(dirX, origin, len, 0xFF0000, headLen, headWidth);
+            this.gizmoGroup.add(this.arrowX);
+
+            // Y Axis (Green)
+            var dirY = new THREE.Vector3(0, 1, 0);
+            this.arrowY = new THREE.ArrowHelper(dirY, origin, len, 0x00FF00, headLen, headWidth);
+            this.gizmoGroup.add(this.arrowY);
+
+            // Z Axis (Blue)
+            var dirZ = new THREE.Vector3(0, 0, 1);
+            this.arrowZ = new THREE.ArrowHelper(dirZ, origin, len, 0x0000FF, headLen, headWidth);
+            this.gizmoGroup.add(this.arrowZ);
+        }
+
+        this.gizmoGroup.visible = true;
+
+        // Highlight active axis
+        this.updateGizmoHighlight();
+    },
+
+    updateGizmoHighlight: function () {
+        if (!this.gizmoGroup) return;
+
+        // Reset colors/opacity
+        // Note: ArrowHelper color setter is specific
+        this.arrowX.setColor(new THREE.Color(0x550000));
+        this.arrowY.setColor(new THREE.Color(0x005500));
+        this.arrowZ.setColor(new THREE.Color(0x000055));
+
+        // Brighten active axis
+        if (this.axis === 'x') this.arrowX.setColor(new THREE.Color(0xFF0000));
+        if (this.axis === 'y') this.arrowY.setColor(new THREE.Color(0x00FF00));
+        if (this.axis === 'z') this.arrowZ.setColor(new THREE.Color(0x0000FF));
+
+        // If uniform scale, maybe highlight all?
+        if (this.axis === 'uniform') {
+            this.arrowX.setColor(new THREE.Color(0xFFFFFF));
+            this.arrowY.setColor(new THREE.Color(0xFFFFFF));
+            this.arrowZ.setColor(new THREE.Color(0xFFFFFF));
+        }
     },
 
     hideGizmos: function () {
-        // Phase 4 implementation placeholder
-        // TODO: Hide arrow helpers
+        if (!this.gizmosVisible) return;
+        this.gizmosVisible = false;
+
+        if (this.gizmoGroup) {
+            this.gizmoGroup.visible = false;
+        }
     },
 
     triggerHaptic: function (intensity, duration) {
