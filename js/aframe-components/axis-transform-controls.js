@@ -162,6 +162,71 @@ AFRAME.registerComponent('axis-transform-controls', {
 
         // Highlight active axis
         this.updateGizmoHighlight();
+
+        // Value Display Label
+        if (!this.valueLabel) {
+            this.valueLabel = document.createElement('a-text');
+            this.valueLabel.setAttribute('align', 'center');
+            this.valueLabel.setAttribute('color', '#FFFFFF');
+            this.valueLabel.setAttribute('width', 4);
+            this.valueLabel.setAttribute('position', '0 1.2 0'); // 1.2m above molecule
+            this.valueLabel.setAttribute('side', 'double');
+            target.appendChild(this.valueLabel);
+        }
+
+        this.valueLabel.setAttribute('visible', true);
+        this.updateValueDisplay();
+    },
+
+    updateValueDisplay: function () {
+        if (!this.valueLabel || !this.isActive) return;
+
+        var target = this.data.target || this.el;
+        var text = '';
+        var color = '#FFFFFF';
+
+        if (this.mode === 'rotate') {
+            var rot = target.getAttribute('rotation');
+            var val = 0;
+            if (this.axis === 'x') { val = rot.x; color = '#FF0000'; }
+            if (this.axis === 'y') { val = rot.y; color = '#00FF00'; }
+            if (this.axis === 'z') { val = rot.z; color = '#5555FF'; }
+            text = 'Rotate ' + this.axis.toUpperCase() + ': ' + val.toFixed(1) + '°';
+        } else if (this.mode === 'scale') {
+            var scale = target.getAttribute('scale');
+            text = 'Scale: ' + scale.x.toFixed(2) + 'x';
+            color = '#00FFFF';
+        } else if (this.mode === 'move') {
+            var pos = target.getAttribute('position');
+            var val = 0;
+            if (this.axis === 'x') { val = pos.x; color = '#FF0000'; }
+            if (this.axis === 'y') { val = pos.y; color = '#00FF00'; }
+            if (this.axis === 'z') { val = pos.z; color = '#5555FF'; }
+            text = 'Move ' + this.axis.toUpperCase() + ': ' + val.toFixed(2) + 'm';
+        }
+
+        this.valueLabel.setAttribute('value', text);
+        this.valueLabel.setAttribute('color', color);
+
+        // Face camera
+        if (this.el.sceneEl.camera) {
+            this.valueLabel.object3D.lookAt(this.el.sceneEl.camera.position);
+        }
+
+        // Reset fade timer
+        this.resetFadeTimer();
+    },
+
+    resetFadeTimer: function () {
+        if (this.fadeTimer) clearTimeout(this.fadeTimer);
+
+        var self = this;
+        // Fade out after 2 seconds of inactivity
+        this.fadeTimer = setTimeout(function () {
+            if (self.valueLabel) self.valueLabel.setAttribute('visible', false);
+            // Keep gizmos visible? Design says auto-fade gizmos after 2s too
+            self.hideGizmos();
+        }, 2000);
     },
 
     updateGizmoHighlight: function () {
