@@ -230,6 +230,25 @@ AFRAME.registerComponent('vr-debug-panel', {
             y += lineHeight;
         }
 
+        y += 20;
+
+        // Molecule info
+        var molecule = document.querySelector('[molecular-renderer]');
+        if (molecule) {
+            ctx.fillStyle = '#ff00ff';
+            ctx.fillText('MOLECULE:', 20, y);
+            y += lineHeight;
+
+            ctx.fillStyle = '#ffffff';
+            var molPos = molecule.getAttribute('position');
+            ctx.fillText('  Position: ' + JSON.stringify(molPos), 20, y);
+            y += lineHeight;
+
+            var molRot = molecule.getAttribute('rotation');
+            ctx.fillText('  Rotation: ' + JSON.stringify(molRot), 20, y);
+            y += lineHeight;
+        }
+
         this.texture.needsUpdate = true;
     },
 
