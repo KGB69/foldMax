@@ -383,8 +383,13 @@ var fontloader =
         color: color
       });
 
-      var geometry = new THREE.Geometry();
-      geometry.vertices.push(start, end);
+      // BufferGeometry for Three.js r147+
+      var positions = new Float32Array([
+        start.x, start.y, start.z,
+        end.x, end.y, end.z
+      ]);
+      var geometry = new THREE.BufferGeometry();
+      geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
       var line = new THREE.Line(geometry, material);
       line.userData = {
         group: group
@@ -395,8 +400,13 @@ var fontloader =
       var material = new THREE.LineBasicMaterial({
         color: color
       });
-      var geometry = new THREE.Geometry();
-      geometry.vertices.push(start, end);
+      // BufferGeometry for Three.js r147+
+      var positions = new Float32Array([
+        start.x, start.y, start.z,
+        end.x, end.y, end.z
+      ]);
+      var geometry = new THREE.BufferGeometry();
+      geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
       var line = new THREE.Line(geometry, material);
       line.userData = {
         group: group
@@ -408,8 +418,13 @@ var fontloader =
       var material = new THREE.LineBasicMaterial({
         color: color
       });
-      var geometry = new THREE.Geometry();
-      geometry.vertices.push(start, end);
+      // BufferGeometry for Three.js r147+
+      var positions = new Float32Array([
+        start.x, start.y, start.z,
+        end.x, end.y, end.z
+      ]);
+      var geometry = new THREE.BufferGeometry();
+      geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
       var line = new THREE.Line(geometry, material);
       line.userData = {
         group: group,
@@ -423,8 +438,10 @@ var fontloader =
       geometry.colors.push(color);
     },
     drawDot: function (group, points, color) {
-      var starsGeometry = new THREE.Geometry();
-      starsGeometry.vertices.push(points);
+      // BufferGeometry for Three.js r147+
+      var positions = new Float32Array([points.x, points.y, points.z]);
+      var starsGeometry = new THREE.BufferGeometry();
+      starsGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
       var starsMaterial = new THREE.PointsMaterial({
         color: color
       });
@@ -1056,84 +1073,72 @@ var fontloader =
       PDB.GROUP[group].add(mesh);
     },
     drawArrow: function (group, sheetPoints) {
+      // BufferGeometry rewrite for Three.js r147+
       for (var i in sheetPoints) {
         var obj = sheetPoints[i];
         var ids = obj.ids;
         var paths = obj.paths;
-        var geometry = new THREE.Geometry();
-        geometry.vertices = paths;
-        //边
-        var materials = [];
-        var verticesIdsAndmaterialId = {};
-        var materialsId = {};
-        for (var i in geometry.vertices) {
 
-          var id = ids[i];
-          var colorId = w3m.mol[PDB.pdbId].color['main'][id];
-          if (materialsId[colorId] == undefined) {
-            var tc = PDB.tool.getColorByIndex(id, 'main');
-            var mater = new THREE.MeshPhongMaterial({
-              color: tc,
-              side: THREE.DoubleSide
-            });
-            materialsId[colorId] = materials.length;
-            materials.push(mater);
-          }
-          verticesIdsAndmaterialId[i] = materialsId[colorId];
+        if (!paths || paths.length < 8) {
+          continue; // Need at least 8 vertices (2 segments of 4)
         }
-        for (var i = 0; i < paths.length; i = i + 4) {
-          // var i = 0;
-          if (paths[i + 7] != undefined) {
-            var face1 = new THREE.Face3(i, i + 1, i + 4);
-            face1.materialIndex = verticesIdsAndmaterialId[i + 1];
-            var face3 = new THREE.Face3(i + 5, i + 2, i + 1);
-            face3.materialIndex = verticesIdsAndmaterialId[i + 2];
-            var face5 = new THREE.Face3(i + 6, i + 3, i + 2);
-            face5.materialIndex = verticesIdsAndmaterialId[i + 3];
-            var face7 = new THREE.Face3(i + 7, i, i + 3);
-            face7.materialIndex = verticesIdsAndmaterialId[i];
-            var face10 = new THREE.Face3(i + 5, i + 4, i + 1);
-            face10.materialIndex = verticesIdsAndmaterialId[i + 4];
-            var face12 = new THREE.Face3(i + 6, i + 5, i + 2);
-            face12.materialIndex = verticesIdsAndmaterialId[i + 5];
-            var face14 = new THREE.Face3(i + 7, i + 6, i + 3); //--
-            face14.materialIndex = verticesIdsAndmaterialId[i + 6];
-            var face16 = new THREE.Face3(i + 7, i + 4, i); //--
-            face16.materialIndex = verticesIdsAndmaterialId[i + 4];
-            geometry.faces.push(face1);
-            geometry.faces.push(face3);
-            geometry.faces.push(face5);
-            geometry.faces.push(face7);
 
-            geometry.faces.push(face10);
-            geometry.faces.push(face12);
-            geometry.faces.push(face14);
-            geometry.faces.push(face16);
+        // Build indices array for the faces
+        var indices = [];
+
+        // Main body faces (connecting consecutive quads)
+        for (var j = 0; j < paths.length - 4; j += 4) {
+          if (paths[j + 7] !== undefined) {
+            // 8 triangles per segment connecting 4-vertex rings
+            indices.push(j, j + 1, j + 4);
+            indices.push(j + 5, j + 2, j + 1);
+            indices.push(j + 6, j + 3, j + 2);
+            indices.push(j + 7, j, j + 3);
+            indices.push(j + 5, j + 4, j + 1);
+            indices.push(j + 6, j + 5, j + 2);
+            indices.push(j + 7, j + 6, j + 3);
+            indices.push(j + 7, j + 4, j);
           }
-
         }
-        geometry.faces.push(new THREE.Face3(0, 1, 2));
-        geometry.faces.push(new THREE.Face3(2, 3, 0));
-        geometry.faces.push(new THREE.Face3(paths.length - 4, paths.length - 3, paths.length - 2));
-        geometry.faces.push(new THREE.Face3(paths.length - 2, paths.length - 1, paths.length - 4));
-        // var geometry = new THREE.PolyhedronGeometry(verticesOfCube,indicesOfFaces,6,2);
-        geometry.computeFaceNormals();
-        geometry.computeFlatVertexNormals();
-        // geometry.computeMorphNormals();
-        // geometry.computeVertexNormals();
+
+        // Cap faces (first and last quads)
+        indices.push(0, 1, 2);
+        indices.push(2, 3, 0);
+        indices.push(paths.length - 4, paths.length - 3, paths.length - 2);
+        indices.push(paths.length - 2, paths.length - 1, paths.length - 4);
+
+        // Build positions array from Vector3 paths
+        var positions = new Float32Array(paths.length * 3);
+        for (var k = 0; k < paths.length; k++) {
+          positions[k * 3] = paths[k].x;
+          positions[k * 3 + 1] = paths[k].y;
+          positions[k * 3 + 2] = paths[k].z;
+        }
+
+        // Create BufferGeometry
+        var geometry = new THREE.BufferGeometry();
+        geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        geometry.setIndex(indices);
+        geometry.computeVertexNormals();
         geometry.computeBoundingSphere();
-        // this.drawDot(group,paths.slice(0,100),0xa345);
-        // var materials = new THREE.MeshLambertMaterial( {  wireframe: false,side: THREE.DoubleSide} );
+
+        // Get color from first id
+        var tc = PDB.tool.getColorByIndex(ids[0], 'main');
+        var material = new THREE.MeshPhongMaterial({
+          color: tc,
+          side: THREE.DoubleSide
+        });
 
         var atom = PDB.tool.getMainAtom(PDB.pdbId, ids[0]);
         var groupindex = "chain_" + atom.chainname;
-        var mesh = new THREE.Mesh(geometry, materials);
+        var mesh = new THREE.Mesh(geometry, material);
         mesh.userData = {
           group: groupindex
         };
         PDB.GROUP[groupindex].add(mesh);
       }
     },
+
     drawArrowByPaths: function (group, paths, color, ids) {
       // BufferGeometry rewrite for Three.js r147+
       if (!paths || paths.length < 8) {
