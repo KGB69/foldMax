@@ -1135,72 +1135,56 @@ var fontloader =
       }
     },
     drawArrowByPaths: function (group, paths, color, ids) {
-      // DISABLED: THREE.Geometry deprecated in r147+
-      console.warn('[drawer] drawArrowByPaths disabled - needs BufferGeometry rewrite');
-      return;
+      // BufferGeometry rewrite for Three.js r147+
+      if (!paths || paths.length < 8) {
+        return; // Need at least 8 vertices (2 segments of 4)
+      }
 
-      var geometry = new THREE.Geometry();
-      geometry.vertices = paths;
-      //边
+      // Build indices array for the faces
+      var indices = [];
 
-      var materials = new THREE.MeshPhongMaterial({
+      // Main body faces (connecting consecutive quads)
+      for (var i = 0; i < paths.length - 4; i += 4) {
+        if (paths[i + 7] !== undefined) {
+          // 8 triangles per segment connecting 4-vertex rings
+          indices.push(i, i + 1, i + 4);
+          indices.push(i + 5, i + 2, i + 1);
+          indices.push(i + 6, i + 3, i + 2);
+          indices.push(i + 7, i, i + 3);
+          indices.push(i + 5, i + 4, i + 1);
+          indices.push(i + 6, i + 5, i + 2);
+          indices.push(i + 7, i + 6, i + 3);
+          indices.push(i + 7, i + 4, i);
+        }
+      }
+
+      // Cap faces (first and last quads)
+      indices.push(0, 1, 2);
+      indices.push(2, 3, 0);
+      indices.push(paths.length - 4, paths.length - 3, paths.length - 2);
+      indices.push(paths.length - 2, paths.length - 1, paths.length - 4);
+
+      // Build positions array from Vector3 paths
+      var positions = new Float32Array(paths.length * 3);
+      for (var j = 0; j < paths.length; j++) {
+        positions[j * 3] = paths[j].x;
+        positions[j * 3 + 1] = paths[j].y;
+        positions[j * 3 + 2] = paths[j].z;
+      }
+
+      // Create BufferGeometry
+      var geometry = new THREE.BufferGeometry();
+      geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      geometry.setIndex(indices);
+      geometry.computeVertexNormals();
+      geometry.computeBoundingSphere();
+
+      var material = new THREE.MeshPhongMaterial({
         color: color,
         side: THREE.DoubleSide
       });
-      for (var i = 0; i < paths.length; i = i + 4) {
-        // var i = 0;
-        if (paths[i + 7] != undefined) {
-          var face1 = new THREE.Face3(i, i + 1, i + 4);
-          face1.materialIndex = 0;
-          var face3 = new THREE.Face3(i + 5, i + 2, i + 1);
-          face3.materialIndex = 0;
-          var face5 = new THREE.Face3(i + 6, i + 3, i + 2);
-          face5.materialIndex = 0;
-          var face7 = new THREE.Face3(i + 7, i, i + 3);
-          face7.materialIndex = 0;
-          var face10 = new THREE.Face3(i + 5, i + 4, i + 1);
-          face10.materialIndex = 0;
-          var face12 = new THREE.Face3(i + 6, i + 5, i + 2);
-          face12.materialIndex = 0;
-          var face14 = new THREE.Face3(i + 7, i + 6, i + 3); //--
-          face14.materialIndex = 0;
-          var face16 = new THREE.Face3(i + 7, i + 4, i); //--
-          face16.materialIndex = 0;
 
-
-          geometry.faces.push(face1);
-          geometry.faces.push(face3);
-          geometry.faces.push(face5);
-          geometry.faces.push(face7);
-
-          geometry.faces.push(face10);
-          geometry.faces.push(face12);
-          geometry.faces.push(face14);
-          geometry.faces.push(face16);
-        }
-
-      }
-      var preface1 = new THREE.Face3(0, 1, 2);
-      preface1.materialIndex = 0;
-      geometry.faces.push(preface1);
-      var preface2 = new THREE.Face3(2, 3, 0);
-      preface2.materialIndex = 0;
-      geometry.faces.push(preface2);
-      var lasface1 = new THREE.Face3(paths.length - 4, paths.length - 3, paths.length - 2);
-      lasface1.materialIndex = 0;
-      geometry.faces.push(lasface1);
-      var lasface2 = new THREE.Face3(paths.length - 2, paths.length - 1, paths.length - 4);
-      lasface2.materialIndex = 0;
-      geometry.faces.push(lasface2);
-      // var geometry = new THREE.PolyhedronGeometry(verticesOfCube,indicesOfFaces,6,2);
-      // geometry.computeFaceNormals();
-      geometry.computeFlatVertexNormals();
-      // geometry.computeMorphNormals();
-      // geometry.computeVertexNormals();
-      geometry.computeBoundingSphere();
-      // this.drawDot(group,paths.slice(0,100),0xa345);
-      // var materials = new THREE.MeshLambertMaterial( {  wireframe: false,side: THREE.DoubleSide} );
-      var mesh = new THREE.Mesh(geometry, materials);
+      var mesh = new THREE.Mesh(geometry, material);
       mesh.name = ids[0];
       var atom = PDB.tool.getMainAtom(PDB.pdbId, ids[0]);
       mesh.userData = {
@@ -1210,7 +1194,6 @@ var fontloader =
         realtype: "arrow"
       };
       PDB.GROUP[group].add(mesh);
-
     },
     drawPlane: function (group, width, height, color, dimension, val, emmap) {
       var geometry = new THREE.PlaneGeometry(width, height, width, height);
