@@ -2,6 +2,7 @@
  * Protein Manipulator Component
  * VR interaction controls for 3D protein structures
  * Phase 1: Grip-based grab and rotate with haptic/visual feedback
+ * REDESIGNED: Frame-by-frame delta approach
  */
 
 AFRAME.registerComponent('protein-manipulator', {
@@ -13,7 +14,7 @@ AFRAME.registerComponent('protein-manipulator', {
     },
 
     init: function () {
-        console.log('[ProteinManipulator] Initializing...');
+        console.log('[ProteinManipulator] Initializing (Delta-based v2)...');
 
         // State tracking
         this.gripped = {
@@ -21,20 +22,13 @@ AFRAME.registerComponent('protein-manipulator', {
             right: false
         };
 
-        this.controllerData = {
-            left: { position: new THREE.Vector3(), rotation: new THREE.Quaternion() },
-            right: { position: new THREE.Vector3(), rotation: new THREE.Quaternion() }
+        // Track previous controller state for frame-to-frame delta calculations
+        this.prevControllerState = {
+            left: { position: new THREE.Vector3(), rotation: new THREE.Quaternion(), valid: false },
+            right: { position: new THREE.Vector3(), rotation: new THREE.Quaternion(), valid: false }
         };
 
-        this.initialGrabData = {
-            moleculePosition: new THREE.Vector3(),
-            moleculeRotation: new THREE.Quaternion(),
-            controllerPosition: new THREE.Vector3(),
-            controllerRotation: new THREE.Quaternion()
-        };
-
-        // Visual feedback - glow material
-        this.originalMaterials = [];
+        // Visual feedback
         this.glowActive = false;
 
         // Setup Phase 1: Grab controls
@@ -42,136 +36,140 @@ AFRAME.registerComponent('protein-manipulator', {
             this.setupGrabControls();
         }
 
-        console.log('[ProteinManipulator] Ready - Grip to grab molecule');
+        console.log('[ProteinManipulator] Ready - New delta-based grab system');
     },
 
     setupGrabControls: function () {
         var self = this;
 
-        // Get controller entities
-        setTimeout(function () {
+        console.log('[ProteinManipulator] Setting up grab controls...');
+
+        // Try to find controllers multiple times
+        var attempts = 0;
+        var checkInterval = setInterval(function () {
+            attempts++;
+
             var leftHand = document.querySelector('#left-hand');
             var rightHand = document.querySelector('#right-hand');
 
-            if (leftHand) {
-                leftHand.addEventListener('gripdown', function (evt) {
-                    self.onGripDown('left', evt);
-                });
-                leftHand.addEventListener('gripup', function (evt) {
-                    self.onGripUp('left', evt);
-                });
-                console.log('[ProteinManipulator] Left grip bound');
-            }
+            if (leftHand || rightHand) {
+                if (leftHand) {
+                    leftHand.addEventListener('gripdown', function (evt) {
+                        console.log('[ProteinManipulator] *** LEFT GRIP DOWN ***');
+                        self.onGripDown('left');
+                    });
+                    leftHand.addEventListener('gripup', function (evt) {
+                        console.log('[ProteinManipulator] *** LEFT GRIP UP ***');
+                        self.onGripUp('left');
+                    });
+                    console.log('[ProteinManipulator] ✓ Left grip bound');
+                }
 
-            if (rightHand) {
-                rightHand.addEventListener('gripdown', function (evt) {
-                    self.onGripDown('right', evt);
-                });
-                rightHand.addEventListener('gripup', function (evt) {
-                    self.onGripUp('right', evt);
-                });
-                console.log('[ProteinManipulator] Right grip bound');
-            }
+                if (rightHand) {
+                    rightHand.addEventListener('gripdown', function (evt) {
+                        console.log('[ProteinManipulator] *** RIGHT GRIP DOWN ***');
+                        self.onGripDown('right');
+                    });
+                    rightHand.addEventListener('gripup', function (evt) {
+                        console.log('[ProteinManipulator] *** RIGHT GRIP UP ***');
+                        self.onGripUp('right');
+                    });
+                    console.log('[ProteinManipulator] ✓ Right grip bound');
+                }
 
-            if (!leftHand && !rightHand) {
-                console.warn('[ProteinManipulator] No controllers found');
+                clearInterval(checkInterval);
+            } else if (attempts > 20) {
+                console.error('[ProteinManipulator] No controllers found after 20 attempts');
+                clearInterval(checkInterval);
             }
-        }, 1000);
+        }, 500);
     },
 
-    onGripDown: function (hand, evt) {
-        console.log('[ProteinManipulator] Grip down:', hand);
+    onGripDown: function (hand) {
+        var controller = document.querySelector('#' + hand + '-hand');
+        if (!controller || !controller.object3D) return;
 
-        // Get controller entity first
-        var controller = hand === 'left'
-            ? document.querySelector('#left-hand')
-            : document.querySelector('#right-hand');
-
-        if (!controller || !controller.object3D) {
-            console.warn('[ProteinManipulator] Controller not found for', hand);
-            return;
-        }
-
-        // Store initial molecule state BEFORE updating grip flags
-        // This prevents resetting position on subsequent grips
-        var isFirstGrip = !this.gripped.left && !this.gripped.right;
-
-        if (isFirstGrip) {
-            // First grip - store current molecule state
-            this.initialGrabData.moleculePosition.copy(this.el.object3D.position);
-            this.initialGrabData.moleculeRotation.copy(this.el.object3D.quaternion);
-            console.log('[ProteinManipulator] Stored initial molecule state:',
-                this.el.object3D.position.toArray());
-        }
-
-        // NOW set the grip flag
         this.gripped[hand] = true;
 
-        // Store controller state
-        controller.object3D.getWorldPosition(this.controllerData[hand].position);
-        controller.object3D.getWorldQuaternion(this.controllerData[hand].rotation);
+        // Initialize previous state for THIS grip session
+        controller.object3D.getWorldPosition(this.prevControllerState[hand].position);
+        controller.object3D.getWorldQuaternion(this.prevControllerState[hand].rotation);
+        this.prevControllerState[hand].valid = true;
 
-        // Store as initial grab point for this controller
-        this.initialGrabData.controllerPosition.copy(this.controllerData[hand].position);
-        this.initialGrabData.controllerRotation.copy(this.controllerData[hand].rotation);
+        console.log('[ProteinManipulator] Grip started -', hand);
 
-        // Haptic feedback - short pulse
+        // Haptic + visual feedback
         this.triggerHapticPulse(controller, 100, 0.5);
-
-        // Visual feedback - add glow
         this.activateGlow();
     },
 
-    onGripUp: function (hand, evt) {
-        console.log('[ProteinManipulator] Grip up:', hand);
-        console.log('[ProteinManipulator] Molecule position at release:', this.el.object3D.position.toArray());
-
+    onGripUp: function (hand) {
         this.gripped[hand] = false;
+        this.prevControllerState[hand].valid = false;
 
-        // Get controller for haptic feedback
-        var controller = hand === 'left'
-            ? document.querySelector('#left-hand')
-            : document.querySelector('#right-hand');
-
-        // Haptic feedback - short pulse on release
+        var controller = document.querySelector('#' + hand + '-hand');
         if (controller) {
             this.triggerHapticPulse(controller, 50, 0.3);
         }
 
-        // If no grips active, remove glow but DON'T reset position
         if (!this.gripped.left && !this.gripped.right) {
             this.deactivateGlow();
-            console.log('[ProteinManipulator] All grips released, final position:', this.el.object3D.position.toArray());
+            console.log('[ProteinManipulator] All grips released');
         }
     },
 
+    tick: function () {
+        if (!this.gripped.left && !this.gripped.right) return;
+
+        // Update transform based on controller deltas
+        var activeHand = this.gripped.right ? 'right' : 'left';
+        var controller = document.querySelector('#' + activeHand + '-hand');
+
+        if (!controller || !controller.object3D) return;
+        if (!this.prevControllerState[activeHand].valid) return;
+
+        // Get current controller state
+        var currentPos = new THREE.Vector3();
+        var currentRot = new THREE.Quaternion();
+        controller.object3D.getWorldPosition(currentPos);
+        controller.object3D.getWorldQuaternion(currentRot);
+
+        // Calculate deltas from PREVIOUS FRAME
+        var deltaPos = new THREE.Vector3();
+        deltaPos.subVectors(currentPos, this.prevControllerState[activeHand].position);
+
+        var deltaRot = new THREE.Quaternion();
+        deltaRot.copy(currentRot);
+        deltaRot.multiply(this.prevControllerState[activeHand].rotation.clone().invert());
+
+        // Apply deltas to molecule's CURRENT state (not stored initial state!)
+        this.el.object3D.position.add(deltaPos);
+        this.el.object3D.quaternion.premultiply(deltaRot);
+
+        // Update previous state for next frame
+        this.prevControllerState[activeHand].position.copy(currentPos);
+        this.prevControllerState[activeHand].rotation.copy(currentRot);
+    },
+
     triggerHapticPulse: function (controllerEl, duration, intensity) {
-        // Trigger haptic feedback if available
         if (controllerEl && controllerEl.components && controllerEl.components['oculus-touch-controls']) {
             var gamepad = controllerEl.components['oculus-touch-controls'].controller;
             if (gamepad && gamepad.hapticActuators && gamepad.hapticActuators[0]) {
                 gamepad.hapticActuators[0].pulse(intensity, duration);
-                console.log('[ProteinManipulator] Haptic pulse:', intensity, duration + 'ms');
             }
         }
     },
 
     activateGlow: function () {
         if (this.glowActive) return;
-
-        console.log('[ProteinManipulator] Activating glow effect');
         this.glowActive = true;
 
-        // Add emissive glow to all meshes in molecule
         this.el.object3D.traverse(function (node) {
             if (node.isMesh && node.material) {
-                // Store original emissive
                 if (!node.userData.originalEmissive) {
                     node.userData.originalEmissive = node.material.emissive ? node.material.emissive.clone() : new THREE.Color(0x000000);
                     node.userData.originalEmissiveIntensity = node.material.emissiveIntensity || 0;
                 }
-
-                // Add cyan glow
                 if (node.material.emissive) {
                     node.material.emissive.setHex(0x00ffff);
                     node.material.emissiveIntensity = 0.3;
@@ -182,11 +180,8 @@ AFRAME.registerComponent('protein-manipulator', {
 
     deactivateGlow: function () {
         if (!this.glowActive) return;
-
-        console.log('[ProteinManipulator] Deactivating glow effect');
         this.glowActive = false;
 
-        // Restore original materials
         this.el.object3D.traverse(function (node) {
             if (node.isMesh && node.material && node.userData.originalEmissive) {
                 if (node.material.emissive) {
@@ -197,52 +192,7 @@ AFRAME.registerComponent('protein-manipulator', {
         });
     },
 
-    tick: function () {
-        // Update molecule transform if gripped
-        if (this.gripped.left || this.gripped.right) {
-            this.updateGrabTransform();
-        }
-    },
-
-    updateGrabTransform: function () {
-        // Get the active controller (prefer right, fall back to left)
-        var activeHand = this.gripped.right ? 'right' : 'left';
-        var controller = activeHand === 'left'
-            ? document.querySelector('#left-hand')
-            : document.querySelector('#right-hand');
-
-        if (!controller || !controller.object3D) return;
-
-        // Get current controller world transform
-        var currentControllerPos = new THREE.Vector3();
-        var currentControllerRot = new THREE.Quaternion();
-        controller.object3D.getWorldPosition(currentControllerPos);
-        controller.object3D.getWorldQuaternion(currentControllerRot);
-
-        // Calculate delta rotation
-        var deltaRotation = new THREE.Quaternion();
-        deltaRotation.copy(currentControllerRot);
-        deltaRotation.multiply(this.initialGrabData.controllerRotation.clone().invert());
-
-        // Calculate delta position
-        var deltaPos = new THREE.Vector3();
-        deltaPos.copy(currentControllerPos);
-        deltaPos.sub(this.initialGrabData.controllerPosition);
-
-        // Apply transforms - start from initial grab state
-        var newRotation = this.initialGrabData.moleculeRotation.clone();
-        newRotation.premultiply(deltaRotation);
-
-        var newPosition = this.initialGrabData.moleculePosition.clone();
-        newPosition.add(deltaPos);
-
-        // Update molecule
-        this.el.object3D.quaternion.copy(newRotation);
-        this.el.object3D.position.copy(newPosition);
-    },
-
     remove: function () {
-        console.log('[ProteinManipulator] Removing...');
         this.deactivateGlow();
     }
 });
