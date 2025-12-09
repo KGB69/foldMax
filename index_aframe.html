@@ -41,6 +41,7 @@
     <script src="js/aframe-components/protein-manipulator.js"></script>
     <script src="js/aframe-components/vr-console.js"></script>
     <script src="js/aframe-components/controller-radial-menu.js"></script>
+    <script src="js/aframe-components/axis-transform-controls.js"></script>
 
     <script>
         // One-time initialization
@@ -57,8 +58,9 @@
         <!-- Procedural Environment -->
         <a-entity environment-loader="timeOfDay: 0.35"></a-entity>
 
-        <!-- Molecule Container -->
-        <a-entity id="molecule-root" position="0 1.6 -2" scale="0.02 0.02 0.02" molecular-renderer="pdbId: 1cbs">
+        <!-- Molecule Container (Target for controls) -->
+        <a-entity id="molecule-container" position="0 1.6 -2" molecular-renderer="pdbId: 1cbs"
+            axis-transform-controls="hand: right">
         </a-entity>
 
         <!-- VR Controls -->

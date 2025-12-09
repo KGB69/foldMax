@@ -249,12 +249,27 @@ AFRAME.registerComponent('controller-radial-menu', {
         if (id === 'back') {
             this.loadMenu('main');
         } else if (this.menus[id]) {
-            // If item ID matches a menu name, load that menu (Sub-menu navigation)
+            // Load sub-menu
             this.loadMenu(id);
         } else {
-            // Leaf node (Action)
-            // Phase 3: Trigger axis control
-            console.log('[ControllerRadialMenu] Action triggered:', id);
+            // Leaf node: Activate transform mode!
+            // Format: 'rotate_x', 'scale_uniform', 'move_z'
+            var parts = id.split('_');
+            if (parts.length > 1) {
+                var mode = parts[0];
+                var axis = parts[1];
+
+                console.log('[ControllerRadialMenu] Emitting start:', mode, axis);
+                this.el.sceneEl.emit('transform-mode-start', {
+                    mode: mode,
+                    axis: axis
+                });
+
+                // TODO: Visual feedback that we are in adjust mode
+                // Maybe close menu or show "Adjusting..." state?
+                // For now, let's toggle menu CLOSED to clear view
+                this.toggleMenu(true);
+            }
         }
     },
 
