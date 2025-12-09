@@ -124,6 +124,7 @@ AFRAME.registerComponent('protein-manipulator', {
 
     onGripUp: function (hand, evt) {
         console.log('[ProteinManipulator] Grip up:', hand);
+        console.log('[ProteinManipulator] Molecule position at release:', this.el.object3D.position.toArray());
 
         this.gripped[hand] = false;
 
@@ -137,9 +138,10 @@ AFRAME.registerComponent('protein-manipulator', {
             this.triggerHapticPulse(controller, 50, 0.3);
         }
 
-        // If no grips active, remove glow
+        // If no grips active, remove glow but DON'T reset position
         if (!this.gripped.left && !this.gripped.right) {
             this.deactivateGlow();
+            console.log('[ProteinManipulator] All grips released, final position:', this.el.object3D.position.toArray());
         }
     },
 
@@ -222,18 +224,21 @@ AFRAME.registerComponent('protein-manipulator', {
         deltaRotation.copy(currentControllerRot);
         deltaRotation.multiply(this.initialGrabData.controllerRotation.clone().invert());
 
-        // Apply rotation to molecule
-        this.el.object3D.quaternion.copy(this.initialGrabData.moleculeRotation);
-        this.el.object3D.quaternion.premultiply(deltaRotation);
-
         // Calculate delta position
         var deltaPos = new THREE.Vector3();
         deltaPos.copy(currentControllerPos);
         deltaPos.sub(this.initialGrabData.controllerPosition);
 
-        // Apply position to molecule
-        this.el.object3D.position.copy(this.initialGrabData.moleculePosition);
-        this.el.object3D.position.add(deltaPos);
+        // Apply transforms - start from initial grab state
+        var newRotation = this.initialGrabData.moleculeRotation.clone();
+        newRotation.premultiply(deltaRotation);
+
+        var newPosition = this.initialGrabData.moleculePosition.clone();
+        newPosition.add(deltaPos);
+
+        // Update molecule
+        this.el.object3D.quaternion.copy(newRotation);
+        this.el.object3D.position.copy(newPosition);
     },
 
     remove: function () {
