@@ -9,10 +9,31 @@ AFRAME.registerComponent('controller-radial-menu', {
     schema: {
         hand: { default: 'right' },
         radius: { default: 0.15 },    // Radius of the menu ring
-        distance: { default: 0.05 },  // Distance offset from controller (forward)
+        distance: { default: 0.15 },  // Distance offset from controller (was 0.05)
         color: { default: '#222222' },
         highlightColor: { default: '#00FFFF' },
         currentSelection: { default: 0 }
+    },
+
+    // ... (init and other methods unchanged) ...
+
+    toggleMenu: function (isGripDown) {
+        if (!isGripDown) return;
+
+        this.isOpen = !this.isOpen;
+        this.menuGroup.setAttribute('visible', this.isOpen);
+
+        this.triggerHaptic(0.5, 50);
+
+        if (this.isOpen) {
+            console.log('[ControllerRadialMenu] Menu OPEN - Stopping active transforms');
+            // Stop any active transformation when menu opens
+            this.el.sceneEl.emit('transform-mode-end');
+
+            this.updateSelection();
+        } else {
+            console.log('[ControllerRadialMenu] Menu CLOSED');
+        }
     },
 
     init: function () {
