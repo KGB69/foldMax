@@ -56,10 +56,13 @@ AFRAME.registerComponent('axis-transform-controls', {
     },
 
     deactivate: function () {
-        console.log('[AxisTransform] Deactivated');
+        if (!this.isActive) return; // Prevent double deactivation logs
+
+        console.log('[AxisTransform] Deactivating current mode:', this.mode);
         this.isActive = false;
         this.mode = null;
         this.axis = null;
+        this.valueLabel = null; // Reset label reference to force recreating (or better: hide it)
 
         // Hide Gizmos
         this.hideGizmos();
