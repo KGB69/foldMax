@@ -135,36 +135,8 @@ AFRAME.registerComponent('axis-transform-controls', {
         if (!target) return;
 
         // Create gizmo container if needed
-        if (!this.gizmoGroup) {
-            this.gizmoGroup = new THREE.Group();
-            target.object3D.add(this.gizmoGroup);
-
-            // Gizmo size
-            var len = 1.0; // 1 meter
-            var headLen = 0.2;
-            var headWidth = 0.1;
-
-            // X Axis (Red)
-            var dirX = new THREE.Vector3(1, 0, 0);
-            var origin = new THREE.Vector3(0, 0, 0);
-            this.arrowX = new THREE.ArrowHelper(dirX, origin, len, 0xFF0000, headLen, headWidth);
-            this.gizmoGroup.add(this.arrowX);
-
-            // Y Axis (Green)
-            var dirY = new THREE.Vector3(0, 1, 0);
-            this.arrowY = new THREE.ArrowHelper(dirY, origin, len, 0x00FF00, headLen, headWidth);
-            this.gizmoGroup.add(this.arrowY);
-
-            // Z Axis (Blue)
-            var dirZ = new THREE.Vector3(0, 0, 1);
-            this.arrowZ = new THREE.ArrowHelper(dirZ, origin, len, 0x0000FF, headLen, headWidth);
-            this.gizmoGroup.add(this.arrowZ);
-        }
-
-        this.gizmoGroup.visible = true;
-
-        // Highlight active axis
-        this.updateGizmoHighlight();
+        // Disabled RGB Arrows per user request
+        // Only ensuring value label exists
 
         // Value Display Label
         if (!this.valueLabel) {
