@@ -82,35 +82,44 @@ AFRAME.registerComponent('protein-manipulator', {
     onGripDown: function (hand, evt) {
         console.log('[ProteinManipulator] Grip down:', hand);
 
-        this.gripped[hand] = true;
-
-        // Get controller entity
+        // Get controller entity first
         var controller = hand === 'left'
             ? document.querySelector('#left-hand')
             : document.querySelector('#right-hand');
 
-        if (controller && controller.object3D) {
-            // Store initial grab data
-            if (!this.gripped.left && !this.gripped.right) {
-                // First grip - store molecule state
-                this.initialGrabData.moleculePosition.copy(this.el.object3D.position);
-                this.initialGrabData.moleculeRotation.copy(this.el.object3D.quaternion);
-            }
-
-            // Store controller state
-            controller.object3D.getWorldPosition(this.controllerData[hand].position);
-            controller.object3D.getWorldQuaternion(this.controllerData[hand].rotation);
-
-            // Store as initial grab point
-            this.initialGrabData.controllerPosition.copy(this.controllerData[hand].position);
-            this.initialGrabData.controllerRotation.copy(this.controllerData[hand].rotation);
-
-            // Haptic feedback - short pulse
-            this.triggerHapticPulse(controller, 100, 0.5);
-
-            // Visual feedback - add glow
-            this.activateGlow();
+        if (!controller || !controller.object3D) {
+            console.warn('[ProteinManipulator] Controller not found for', hand);
+            return;
         }
+
+        // Store initial molecule state BEFORE updating grip flags
+        // This prevents resetting position on subsequent grips
+        var isFirstGrip = !this.gripped.left && !this.gripped.right;
+
+        if (isFirstGrip) {
+            // First grip - store current molecule state
+            this.initialGrabData.moleculePosition.copy(this.el.object3D.position);
+            this.initialGrabData.moleculeRotation.copy(this.el.object3D.quaternion);
+            console.log('[ProteinManipulator] Stored initial molecule state:',
+                this.el.object3D.position.toArray());
+        }
+
+        // NOW set the grip flag
+        this.gripped[hand] = true;
+
+        // Store controller state
+        controller.object3D.getWorldPosition(this.controllerData[hand].position);
+        controller.object3D.getWorldQuaternion(this.controllerData[hand].rotation);
+
+        // Store as initial grab point for this controller
+        this.initialGrabData.controllerPosition.copy(this.controllerData[hand].position);
+        this.initialGrabData.controllerRotation.copy(this.controllerData[hand].rotation);
+
+        // Haptic feedback - short pulse
+        this.triggerHapticPulse(controller, 100, 0.5);
+
+        // Visual feedback - add glow
+        this.activateGlow();
     },
 
     onGripUp: function (hand, evt) {
