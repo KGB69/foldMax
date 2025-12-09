@@ -40,6 +40,7 @@
     <script src="js/aframe-components/vr-debug-panel.js"></script>
     <script src="js/aframe-components/protein-manipulator.js"></script>
     <script src="js/aframe-components/vr-console.js"></script>
+    <script src="js/aframe-components/controller-radial-menu.js"></script>
 
     <script>
         // One-time initialization
@@ -64,9 +65,9 @@
         <a-entity id="rig" position="0 0 0" movement-controls="fly: true; speed: 0.5" movement-debug>
             <a-entity id="camera" camera look-controls wasd-controls></a-entity>
             <a-entity id="left-hand" oculus-touch-controls="hand: left" laser-controls="hand: left"
-                raycaster="objects: .clickable; far: 10"></a-entity>
+                raycaster="objects: .clickable; far: 5"></a-entity>
             <a-entity id="right-hand" oculus-touch-controls="hand: right" laser-controls="hand: right"
-                raycaster="objects: .clickable; far: 10"></a-entity>
+                raycaster="objects: .clickable; far: 5" controller-radial-menu></a-entity>
         </a-entity>
 
         <!-- Radial Menu -->

@@ -62,8 +62,8 @@ AFRAME.registerComponent('molecular-renderer', {
                 scope.el.sceneEl.emit('pdb-loading-complete', { pdbId: pdbId });
 
                 // Add VR manipulation controls
-                scope.el.setAttribute('protein-manipulator', '');
-                console.log('[MolecularRenderer] VR manipulation enabled');
+                // scope.el.setAttribute('protein-manipulator', ''); // Replaced by controller-radial-menu
+                console.log('[MolecularRenderer] VR manipulation ready (Menu system)');
             } catch (error) {
                 console.error('[MolecularRenderer] ERROR:', error);
                 scope.el.sceneEl.emit('pdb-loading-error', { error: error.message });
