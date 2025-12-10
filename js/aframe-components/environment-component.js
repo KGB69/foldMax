@@ -142,7 +142,7 @@ AFRAME.registerComponent('environment-loader', {
 
         var mesh = new THREE.Mesh(geometry, material);
         mesh.rotation.x = -Math.PI / 2;
-        mesh.position.y = -50; // Keep original offset
+        mesh.position.y = 0; // Ground at player foot level
         this.scene.add(mesh);
 
         // Add base circle
@@ -154,7 +154,7 @@ AFRAME.registerComponent('environment-loader', {
         });
         var baseMesh = new THREE.Mesh(baseGeo, baseMat);
         baseMesh.rotation.x = -Math.PI / 2;
-        baseMesh.position.y = -50.5;
+        baseMesh.position.y = -0.5;
         this.scene.add(baseMesh);
     },
 
