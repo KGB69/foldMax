@@ -65,13 +65,15 @@
         </a-entity>
 
         <!-- VR Controls -->
-        <a-entity id="rig" position="0 0 0" movement-controls="fly: true; speed: 0.5" movement-debug>
-            <a-entity id="camera" camera look-controls wasd-controls></a-entity>
+        <a-entity id="rig" position="0 0 0"
+            movement-controls="fly: true; speed: 0.3; controls: gamepad, keyboard, touch" movement-debug>
+            <a-entity id="camera" camera position="0 1.6 0" look-controls="pointerLockEnabled: true"></a-entity>
             <a-entity id="left-hand" oculus-touch-controls="hand: left" laser-controls="hand: left"
                 raycaster="objects: .clickable; far: 5"></a-entity>
             <a-entity id="right-hand" oculus-touch-controls="hand: right" laser-controls="hand: right"
                 raycaster="objects: .clickable; far: 5" controller-radial-menu></a-entity>
         </a-entity>
+
 
         <!-- Radial Menu -->
         <a-entity id="radial-menu" radial-menu class="clickable"></a-entity>
