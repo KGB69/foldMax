@@ -1,199 +1,185 @@
 /**
- * Controller Radial Menu Component
+ * Pie-Chart Radial Menu Component
  * 
- * Implements a Blender-style 3D radial menu that orbits the VR controller.
- * Main entry point for the new protein manipulation system.
+ * A proper pie-chart style menu with wedge segments for VR controllers.
+ * Replaces the previous ring-based menu.
  */
 
 AFRAME.registerComponent('controller-radial-menu', {
     schema: {
         hand: { default: 'right' },
-        radius: { default: 0.15 },    // Radius of the menu ring
-        distance: { default: 0.15 },  // Distance offset from controller (was 0.05)
-        color: { default: '#222222' },
+        radius: { default: 0.12 },
+        innerRadius: { default: 0.03 },
+        distance: { default: 0.15 },
+        baseColor: { default: '#333333' },
         highlightColor: { default: '#00FFFF' },
-        currentSelection: { default: 0 }
-    },
-
-    // ... (init and other methods unchanged) ...
-
-    toggleMenu: function (isGripDown) {
-        if (!isGripDown) return;
-
-        this.isOpen = !this.isOpen;
-        this.menuGroup.setAttribute('visible', this.isOpen);
-
-        this.triggerHaptic(0.5, 50);
-
-        if (this.isOpen) {
-            console.log('[ControllerRadialMenu] Menu OPEN - Stopping active transforms');
-            // Stop any active transformation when menu opens
-            this.el.sceneEl.emit('transform-mode-end');
-
-            this.updateSelection();
-        } else {
-            console.log('[ControllerRadialMenu] Menu CLOSED');
-        }
+        segmentGap: { default: 2 } // degrees
     },
 
     init: function () {
-        console.log('[ControllerRadialMenu] Initializing for', this.data.hand);
+        console.log('[PieMenu] Initializing for', this.data.hand);
 
         this.isOpen = false;
         this.menuGroup = null;
-        this.menuItems = [];
+        this.segments = [];
+        this.selectedIndex = 0;
         this.joystickReset = true;
-        this.menuState = 'main'; // main, rotate, scale, move
+        this.menuState = 'main';
+        this.keyboardActive = false;
 
         // Define menu structures
         this.menus = {
             main: [
-                { id: 'rotate', label: 'Rotate', angle: 90, icon: '↻' },
-                { id: 'scale', label: 'Scale', angle: 210, icon: '⤢' },
-                { id: 'move', label: 'Move', angle: 330, icon: '↔' }
+                { id: 'enter_pdb', label: 'Enter PDB', icon: '📝', color: '#4CAF50' },
+                { id: 'rotate', label: 'Rotate', icon: '↻', color: '#FF9800' },
+                { id: 'scale', label: 'Scale', icon: '⤢', color: '#9C27B0' },
+                { id: 'move', label: 'Move', icon: '↔', color: '#2196F3' }
             ],
             rotate: [
-                { id: 'rotate_x', label: 'X Axis', angle: 90, icon: 'X', color: '#FF0000' },
-                { id: 'rotate_y', label: 'Y Axis', angle: 210, icon: 'Y', color: '#00FF00' },
-                { id: 'rotate_z', label: 'Z Axis', angle: 330, icon: 'Z', color: '#0000FF' },
-                { id: 'back', label: 'Back', angle: 0, icon: '←', size: 0.5 }
+                { id: 'rotate_x', label: 'X Axis', icon: 'X', color: '#FF0000' },
+                { id: 'rotate_y', label: 'Y Axis', icon: 'Y', color: '#00FF00' },
+                { id: 'rotate_z', label: 'Z Axis', icon: 'Z', color: '#0000FF' },
+                { id: 'back', label: 'Back', icon: '←', color: '#888888' }
             ],
             scale: [
-                { id: 'scale_uniform', label: 'Uniform', angle: 90, icon: '⤢' },
-                { id: 'back', label: 'Back', angle: 270, icon: '←' }
+                { id: 'scale_uniform', label: 'Uniform', icon: '⤢', color: '#9C27B0' },
+                { id: 'back', label: 'Back', icon: '←', color: '#888888' }
             ],
             move: [
-                { id: 'move_x', label: 'X Axis', angle: 90, icon: 'X', color: '#FF0000' },
-                { id: 'move_y', label: 'Y Axis', angle: 210, icon: 'Y', color: '#00FF00' },
-                { id: 'move_z', label: 'Z Axis', angle: 330, icon: 'Z', color: '#0000FF' },
-                { id: 'back', label: 'Back', angle: 0, icon: '←', size: 0.5 }
+                { id: 'move_x', label: 'X Axis', icon: 'X', color: '#FF0000' },
+                { id: 'move_y', label: 'Y Axis', icon: 'Y', color: '#00FF00' },
+                { id: 'move_z', label: 'Z Axis', icon: 'Z', color: '#0000FF' },
+                { id: 'back', label: 'Back', icon: '←', color: '#888888' }
             ]
         };
 
-        // Create menu geometry
         this.createMenuContainer();
         this.loadMenu('main');
-
-        // Setup listeners
         this.setupListeners();
 
-        console.log('[ControllerRadialMenu] Ready');
+        console.log('[PieMenu] Ready');
     },
 
     createMenuContainer: function () {
-        // Container for the menu - parented to controller
         this.menuGroup = document.createElement('a-entity');
         this.menuGroup.setAttribute('visible', false);
-        this.menuGroup.setAttribute('position', `0 0.1 -${this.data.distance}`);
+        this.menuGroup.setAttribute('position', '0 0.08 -' + this.data.distance);
         this.el.appendChild(this.menuGroup);
-
-        // Menu Background Ring
-        this.ringEl = document.createElement('a-entity');
-        this.ringEl.setAttribute('geometry', {
-            primitive: 'ring',
-            radiusInner: 0.05,
-            radiusOuter: this.data.radius,
-            thetaLength: 360,
-            segmentsTheta: 32
-        });
-        this.ringEl.setAttribute('material', {
-            color: this.data.color,
-            opacity: 0.85,
-            side: 'double',
-            transparent: true,
-            shader: 'flat'
-        });
-        this.menuGroup.appendChild(this.ringEl);
-
-        // Selection Indicator
-        this.selectionIndicator = document.createElement('a-entity');
-        this.selectionIndicator.setAttribute('geometry', {
-            primitive: 'ring',
-            radiusInner: this.data.radius - 0.01,
-            radiusOuter: this.data.radius + 0.005,
-            thetaLength: 360
-        });
-        this.selectionIndicator.setAttribute('material', {
-            color: this.data.highlightColor,
-            opacity: 0.0,
-            transparent: true,
-            shader: 'flat'
-        });
-        this.menuGroup.appendChild(this.selectionIndicator);
     },
 
     loadMenu: function (menuName) {
-        // Clear existing items
-        if (this.currentMenuEl) {
-            this.menuGroup.removeChild(this.currentMenuEl);
+        // Clear existing segments
+        while (this.menuGroup.firstChild) {
+            this.menuGroup.removeChild(this.menuGroup.firstChild);
         }
-
-        this.menuItems = [];
+        this.segments = [];
         this.menuState = menuName;
-        this.data.currentSelection = 0;
-
-        // Create new container for items
-        this.currentMenuEl = document.createElement('a-entity');
-        this.menuGroup.appendChild(this.currentMenuEl);
+        this.selectedIndex = 0;
 
         var items = this.menus[menuName];
-        var self = this;
+        var numItems = items.length;
+        var segmentAngle = 360 / numItems;
+        var gap = this.data.segmentGap;
 
-        items.forEach(function (item) {
-            self.createMenuItem(item, self.currentMenuEl);
-        });
+        for (var i = 0; i < numItems; i++) {
+            var item = items[i];
+            var startAngle = i * segmentAngle - 90 + gap / 2; // Start from top
+            var endAngle = startAngle + segmentAngle - gap;
+
+            var segment = this.createPieSegment(item, startAngle, endAngle, i);
+            this.segments.push(segment);
+        }
 
         this.updateSelection();
     },
 
-    createMenuItem: function (itemData, parent) {
-        // Convert angle to position on ring
-        // Angle 0 is right, 90 is top. 
-        // We want Rotate at top (90), Scale bottom-left (210), Move bottom-right (330)
-        var rad = itemData.angle * (Math.PI / 180);
-        var r = this.data.radius * 0.65; // Position items inside the ring
-        var x = r * Math.cos(rad);
-        var y = r * Math.sin(rad);
+    createPieSegment: function (itemData, startAngle, endAngle, index) {
+        var radius = this.data.radius;
+        var innerRadius = this.data.innerRadius;
 
-        // Container for item
-        var itemContainer = document.createElement('a-entity');
-        itemContainer.setAttribute('position', `${x} ${y} 0.01`);
+        // Create pie wedge shape
+        var shape = new THREE.Shape();
+        var startRad = THREE.MathUtils.degToRad(startAngle);
+        var endRad = THREE.MathUtils.degToRad(endAngle);
 
-        // Icon/Text
-        var textEl = document.createElement('a-text');
-        textEl.setAttribute('value', itemData.icon + '\n' + itemData.label);
-        textEl.setAttribute('align', 'center');
-        textEl.setAttribute('width', 0.8); // Use itemData.size or default
-        var color = itemData.color || '#FFFFFF';
-        textEl.setAttribute('color', color); // Use itemData.color or default
+        // Start at inner arc
+        shape.moveTo(
+            Math.cos(startRad) * innerRadius,
+            Math.sin(startRad) * innerRadius
+        );
 
-        itemContainer.appendChild(textEl);
-        parent.appendChild(itemContainer);
+        // Line to outer arc start
+        shape.lineTo(
+            Math.cos(startRad) * radius,
+            Math.sin(startRad) * radius
+        );
 
-        this.menuItems.push({
-            id: itemData.id,
-            el: itemContainer,
-            angle: itemData.angle,
-            data: itemData, // Store original item data for color, etc.
-            originalColor: color
+        // Outer arc
+        shape.absarc(0, 0, radius, startRad, endRad, false);
+
+        // Line to inner arc end
+        shape.lineTo(
+            Math.cos(endRad) * innerRadius,
+            Math.sin(endRad) * innerRadius
+        );
+
+        // Inner arc (reverse)
+        shape.absarc(0, 0, innerRadius, endRad, startRad, true);
+
+        var geometry = new THREE.ShapeGeometry(shape);
+        var material = new THREE.MeshBasicMaterial({
+            color: itemData.color || this.data.baseColor,
+            side: THREE.DoubleSide,
+            transparent: true,
+            opacity: 0.85
         });
+
+        var mesh = new THREE.Mesh(geometry, material);
+        mesh.position.z = 0.001;
+
+        // Container entity
+        var segmentEl = document.createElement('a-entity');
+        segmentEl.setObject3D('mesh', mesh);
+        this.menuGroup.appendChild(segmentEl);
+
+        // Add label
+        var midAngle = (startAngle + endAngle) / 2;
+        var labelRadius = (radius + innerRadius) / 2;
+        var labelX = Math.cos(THREE.MathUtils.degToRad(midAngle)) * labelRadius;
+        var labelY = Math.sin(THREE.MathUtils.degToRad(midAngle)) * labelRadius;
+
+        var labelEl = document.createElement('a-text');
+        labelEl.setAttribute('value', itemData.icon + '\n' + itemData.label);
+        labelEl.setAttribute('align', 'center');
+        labelEl.setAttribute('width', 0.3);
+        labelEl.setAttribute('color', '#FFFFFF');
+        labelEl.setAttribute('position', labelX + ' ' + labelY + ' 0.002');
+        this.menuGroup.appendChild(labelEl);
+
+        return {
+            id: itemData.id,
+            el: segmentEl,
+            labelEl: labelEl,
+            mesh: mesh,
+            material: material,
+            data: itemData,
+            baseColor: new THREE.Color(itemData.color || this.data.baseColor),
+            index: index
+        };
     },
 
     setupListeners: function () {
         var self = this;
 
-        // Grip button to toggle menu
         this.el.addEventListener('gripdown', function () {
-            self.toggleMenu(true);
+            self.toggleMenu();
         });
 
-        // Joystick movement (thumbstickmoved)
         this.el.addEventListener('thumbstickmoved', function (evt) {
-            if (!self.isOpen) return;
+            if (!self.isOpen || self.keyboardActive) return;
             self.handleJoystick(evt.detail);
         });
 
-        // Trigger to select
         this.el.addEventListener('triggerdown', function () {
             if (!self.isOpen) return;
             self.selectCurrentItem();
@@ -201,138 +187,131 @@ AFRAME.registerComponent('controller-radial-menu', {
     },
 
     handleJoystick: function (detail) {
-        // Horizontal movement: detail.x (-1 to 1)
-        // Add deadzone
-        if (Math.abs(detail.x) < 0.5) {
+        var x = detail.x;
+        var y = detail.y;
+        var deadzone = 0.4;
+
+        if (Math.abs(x) < deadzone && Math.abs(y) < deadzone) {
             this.joystickReset = true;
             return;
         }
 
-        // Only trigger once per press (like a d-pad)
         if (!this.joystickReset) return;
-
-        if (detail.x > 0.5) {
-            this.navigateMenu(1); // Right/Next
-        } else if (detail.x < -0.5) {
-            this.navigateMenu(-1); // Left/Prev
-        }
-
         this.joystickReset = false;
-    },
 
-    navigateMenu: function (direction) {
-        // Update selection index
-        this.data.currentSelection += direction;
+        // Calculate angle from joystick position
+        var angle = Math.atan2(y, x) * (180 / Math.PI);
+        angle = (angle + 360) % 360; // Normalize to 0-360
 
-        // Wrap around
-        if (this.data.currentSelection >= this.menuItems.length) {
-            this.data.currentSelection = 0;
-        } else if (this.data.currentSelection < 0) {
-            this.data.currentSelection = this.menuItems.length - 1;
+        // Convert to segment index
+        var numItems = this.segments.length;
+        var segmentAngle = 360 / numItems;
+        // Offset by 90 degrees (menu starts from top)
+        var adjustedAngle = (angle + 90 + segmentAngle / 2) % 360;
+        var newIndex = Math.floor(adjustedAngle / segmentAngle);
+
+        if (newIndex !== this.selectedIndex) {
+            this.selectedIndex = newIndex;
+            this.updateSelection();
+            this.triggerHaptic(0.3, 30);
         }
-
-        this.updateSelection();
-        this.triggerHaptic(0.3, 20); // Light tick
     },
 
     updateSelection: function () {
-        if (!this.menuItems.length) return;
-
-        // visual update of highlight
-        var item = this.menuItems[this.data.currentSelection];
-
-        // 1. Move selection ring to item angle
-        // Actually, ring highlights the "Active" item. 
-        // Our items are at specific angles. 
-        // We can rotate the selection indicator or highlight the text.
-
-        // Highlighting the text container:
-        this.menuItems.forEach(function (i) {
-            i.el.querySelector('a-text').setAttribute('color', i.originalColor || '#FFFFFF');
-            i.el.setAttribute('scale', '1 1 1');
+        var self = this;
+        this.segments.forEach(function (seg, i) {
+            if (i === self.selectedIndex) {
+                seg.material.color.set(self.data.highlightColor);
+                seg.material.opacity = 1.0;
+            } else {
+                seg.material.color.copy(seg.baseColor);
+                seg.material.opacity = 0.85;
+            }
         });
-
-        // Use custom highlight color if defined (for axes), else default
-        var highlight = item.data.color || this.data.highlightColor;
-        item.el.querySelector('a-text').setAttribute('color', highlight);
-        item.el.setAttribute('scale', '1.2 1.2 1.2'); // Pop effect
-
-        // Optional: Rotate a pointer or ring to point at it
-        // Phase 2 MVP: Just text color/scale
     },
 
     selectCurrentItem: function () {
-        var item = this.menuItems[this.data.currentSelection];
-        var id = item.id;
-        console.log('[ControllerRadialMenu] Selected:', id);
-        this.triggerHaptic(0.8, 50);
+        if (this.selectedIndex < 0 || this.selectedIndex >= this.segments.length) return;
 
-        if (id === 'back') {
+        var segment = this.segments[this.selectedIndex];
+        var itemId = segment.id;
+
+        console.log('[PieMenu] Selected:', itemId);
+        this.triggerHaptic(0.6, 50);
+
+        // Handle selection
+        if (itemId === 'back') {
             this.loadMenu('main');
-        } else if (this.menus[id]) {
-            // Load sub-menu
-            this.loadMenu(id);
-        } else {
-            // Leaf node: Activate transform mode!
-            // Format: 'rotate_x', 'scale_uniform', 'move_z'
-            var parts = id.split('_');
-            if (parts.length > 1) {
-                var mode = parts[0];
-                var axis = parts[1];
-
-                console.log('[ControllerRadialMenu] Emitting start:', mode, axis);
-                this.el.sceneEl.emit('transform-mode-start', {
-                    mode: mode,
-                    axis: axis
-                });
-
-                // TODO: Visual feedback that we are in adjust mode
-                // Maybe close menu or show "Adjusting..." state?
-                // For now, let's toggle menu CLOSED to clear view
-                this.toggleMenu(true);
-            }
+        } else if (itemId === 'rotate') {
+            this.loadMenu('rotate');
+        } else if (itemId === 'scale') {
+            this.loadMenu('scale');
+        } else if (itemId === 'move') {
+            this.loadMenu('move');
+        } else if (itemId === 'enter_pdb') {
+            this.openKeyboard();
+        } else if (itemId.startsWith('rotate_') || itemId.startsWith('move_') || itemId === 'scale_uniform') {
+            // Emit transform event
+            this.el.sceneEl.emit('transform-mode-start', {
+                mode: itemId,
+                hand: this.data.hand
+            });
+            this.toggleMenu(); // Close menu
         }
     },
 
-    toggleMenu: function (isGripDown) {
-        if (!isGripDown) return;
+    openKeyboard: function () {
+        console.log('[PieMenu] Opening VR Keyboard for PDB input');
+        this.keyboardActive = true;
+        this.el.sceneEl.emit('vr-keyboard-open', { callback: this.onPDBEntered.bind(this) });
+    },
 
+    onPDBEntered: function (pdbId) {
+        console.log('[PieMenu] PDB entered:', pdbId);
+        this.keyboardActive = false;
+        if (pdbId && pdbId.length > 0) {
+            // Load the PDB
+            if (typeof PDB !== 'undefined' && PDB.loader) {
+                PDB.loader.load(pdbId);
+            }
+        }
+        this.toggleMenu();
+    },
+
+    toggleMenu: function () {
         this.isOpen = !this.isOpen;
         this.menuGroup.setAttribute('visible', this.isOpen);
-
         this.triggerHaptic(0.5, 50);
 
         if (this.isOpen) {
-            console.log('[ControllerRadialMenu] Menu OPEN');
-            this.updateSelection(); // Ensure highlight is correct on open
+            console.log('[PieMenu] OPEN');
+            this.el.sceneEl.emit('transform-mode-end');
+            this.loadMenu('main');
         } else {
-            console.log('[ControllerRadialMenu] Menu CLOSED');
+            console.log('[PieMenu] CLOSED');
         }
     },
 
     triggerHaptic: function (intensity, duration) {
-        if (this.el.components['oculus-touch-controls'] &&
-            this.el.components['oculus-touch-controls'].controller &&
-            this.el.components['oculus-touch-controls'].controller.hapticActuators &&
-            this.el.components['oculus-touch-controls'].controller.hapticActuators[0]) {
-            this.el.components['oculus-touch-controls'].controller.hapticActuators[0].pulse(intensity, duration);
+        var gamepad = this.el.components['oculus-touch-controls'];
+        if (gamepad && gamepad.controller && gamepad.controller.gamepad) {
+            var actuators = gamepad.controller.gamepad.hapticActuators;
+            if (actuators && actuators[0]) {
+                actuators[0].pulse(intensity, duration);
+            }
         }
     },
 
     tick: function () {
-        // Animation or orientation updates can go here
+        // Keep menu facing camera
         if (this.isOpen && this.menuGroup) {
-            // Optional: billboard logic to face camera
-            var camera = this.el.sceneEl.camera;
+            var camera = document.querySelector('#camera');
             if (camera) {
-                // Clone position, look at camera
-                // But we want it to stay attached to controller position-wise.
-                // So we only rotate the menuGroup.
-
-                // However, "attached to controller" usually means it rotates with controller (like a palette).
-                // User said "hinged to the controller". I'll leave it attached (no billboarding) for now.
-                // This feels more like a palette on your hand.
+                var camPos = camera.object3D.getWorldPosition(new THREE.Vector3());
+                this.menuGroup.object3D.lookAt(camPos);
             }
         }
     }
 });
+
+console.log('[PieMenu] Component registered');

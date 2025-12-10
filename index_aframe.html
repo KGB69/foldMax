@@ -44,6 +44,7 @@
     <script src="js/aframe-components/controller-radial-menu.js"></script>
     <script src="js/aframe-components/axis-transform-controls.js"></script>
     <script src="js/aframe-components/vr-locomotion.js"></script>
+    <script src="js/aframe-components/vr-keyboard.js"></script>
 
     <script>
         // One-time initialization
@@ -83,6 +84,9 @@
 
         <!-- VR Console - Shows logs in headset -->
         <a-entity vr-console></a-entity>
+
+        <!-- VR Keyboard for PDB Input -->
+        <a-entity vr-keyboard></a-entity>
 
         <!-- Mouse Cursor for Desktop -->
         <a-entity cursor="rayOrigin: mouse" raycaster="objects: .clickable"></a-entity>
