@@ -45,7 +45,20 @@ AFRAME.registerComponent('molecular-renderer', {
         // -------------------------
         console.log('[MolecularRenderer] Clearing previous model...');
 
+        // Step 0: Use Official PDB Library Cleanup (Critical for resetting data buffers)
+        if (typeof PDB !== 'undefined') {
+            if (PDB.controller && typeof PDB.controller.clear === 'function') {
+                console.log('[MolecularRenderer] Calling PDB.controller.clear(2, -1)');
+                try { PDB.controller.clear(2, -1); } catch (e) { console.warn('PDB.controller.clear failed:', e); }
+            }
+            if (PDB.loader && typeof PDB.loader.clear === 'function') {
+                console.log('[MolecularRenderer] Calling PDB.loader.clear()');
+                try { PDB.loader.clear(); } catch (e) { console.warn('PDB.loader.clear failed:', e); }
+            }
+        }
+
         // Method 1: Clear PDB.GROUP children AND Remove Groups
+
         if (typeof PDB !== 'undefined' && PDB.GROUP) {
             for (var g = 0; g < PDB.GROUP_COUNT; g++) {
                 if (PDB.GROUP[g]) {
