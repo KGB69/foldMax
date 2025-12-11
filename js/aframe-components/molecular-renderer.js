@@ -74,7 +74,12 @@ AFRAME.registerComponent('molecular-renderer', {
             break; // Rely on Method 1 for now to avoid breaking structure
         }
 
-        PDB.loader.load(pdbId, function () {
+        // Use CORS proxy to avoid localhost issues
+        var pdbUrl = 'https://corsproxy.io/?' + encodeURIComponent('https://files.rcsb.org/view/' + pdbId + '.pdb');
+
+        console.log('[MolecularRenderer] Loading from proxy:', pdbUrl);
+
+        PDB.loader.load(pdbUrl, function () {
             console.log(`[MolecularRenderer] Loaded ${pdbId} successfully.`);
 
             // Initialize PDB.GROUP objects

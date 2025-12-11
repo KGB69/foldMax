@@ -277,6 +277,10 @@ AFRAME.registerComponent('radial-menu', {
         ctx.clearRect(0, 0, w, h);
         this.buttons = [];
 
+        // DEBUG: Uncomment to see if canvas is drawing
+        // ctx.fillStyle = "red";
+        // ctx.fillRect(0, 0, 100, 100);
+
         if (this.isLoading) {
             this.drawLoadingScreen(ctx);
         } else {
@@ -298,9 +302,28 @@ AFRAME.registerComponent('radial-menu', {
 
             // Selection highlight
             this.drawSelection(ctx);
+
+            // DEBUG: Draw hitboxes to verify alignment
+            // this.drawHitBoxes(ctx);
         }
 
         this.texture.needsUpdate = true;
+    },
+
+    // DEBUG: Visualizes where the click buttons actually are
+    drawHitBoxes: function (ctx) {
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = 'rgba(255, 0, 0, 0.8)';
+
+        for (var i = 0; i < this.buttons.length; i++) {
+            var b = this.buttons[i];
+            ctx.strokeRect(b.x, b.y, b.w, b.h);
+
+            ctx.fillStyle = 'rgba(255, 0, 0, 0.2)';
+            ctx.font = '10px Arial';
+            ctx.textAlign = 'left';
+            ctx.fillText(b.id, b.x + 5, b.y + 15);
+        }
     },
 
     drawLoadingScreen: function (ctx) {
@@ -369,11 +392,12 @@ AFRAME.registerComponent('radial-menu', {
         ctx.fillText('Menu', 80, 110);
 
         // Tabs
-        var tabY = 170;
-        var tabW = 180;
-        var tabH = 60;
-        var tabGap = 10;
-        var startX = 80;
+        // Tabs - Moved UP into header area to be flush
+        var tabY = 110;
+        var tabW = 160;
+        var tabH = 50;
+        var tabGap = 8;
+        var startX = 100;
 
         var tabs = [
             { id: 'main', label: 'Main', color: 'rgba(0, 150, 255, 0.4)' },
@@ -395,7 +419,7 @@ AFRAME.registerComponent('radial-menu', {
             })(tabIdClosure));
 
             var bgColor = isActive ? tab.color : 'rgba(50, 50, 50, 0.3)';
-            this.drawButton(ctx, tab.label, x, tabY, tabW, tabH, bgColor, 28);
+            this.drawButton(ctx, tab.label, x, tabY, tabW, tabH, bgColor, 24); // Smaller font
 
             if (isActive) {
                 ctx.fillStyle = '#00ffff';
@@ -698,14 +722,26 @@ AFRAME.registerComponent('radial-menu', {
         var cx = uv.x * this.canvas.width;
         var cy = (1 - uv.y) * this.canvas.height;
 
+        console.log('[RadialMenu] Click at UV:', uv.x.toFixed(3), uv.y.toFixed(3), 'Canvas:', cx.toFixed(0), cy.toFixed(0));
+
+        // VISUAL DEBUG: Draw click marker
+        var ctx = this.ctx;
+        ctx.fillStyle = 'red';
+        ctx.beginPath();
+        ctx.arc(cx, cy, 5, 0, Math.PI * 2);
+        ctx.fill();
+        this.texture.needsUpdate = true;
+
         for (var i = 0; i < this.buttons.length; i++) {
             var b = this.buttons[i];
             if (cx >= b.x && cx <= b.x + b.w && cy >= b.y && cy <= b.y + b.h) {
-                console.log('[RadialMenu] Button clicked:', b.id);
+                console.log('[RadialMenu] HIT BUTTON:', b.id);
                 if (b.callback) b.callback();
+                this.draw(); // Redraw immediately to clear debug marker
                 return;
             }
         }
+        console.log('[RadialMenu] Click hit nothing');
     },
 
     switchTab: function (tabId) {
