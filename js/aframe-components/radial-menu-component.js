@@ -24,6 +24,9 @@ AFRAME.registerComponent('radial-menu', {
         this.currentInput = '';
         this.maxInputLength = 4;
 
+        // PDB keyboard input
+        this.pdbInput = '';
+
         // Canvas setup
         this.canvas = document.createElement('canvas');
         this.canvas.width = 1024;
@@ -420,6 +423,9 @@ AFRAME.registerComponent('radial-menu', {
             case 'display':
                 this.drawDisplayTab(ctx, contentY);
                 break;
+            case 'keyboard':
+                this.drawKeyboardTab(ctx, contentY);
+                break;
         }
     },
 
@@ -453,7 +459,7 @@ AFRAME.registerComponent('radial-menu', {
             ctx.fillText(this.isInputMode ? '|' : 'Enter PDB ID (4 characters)', x + 20, y + 50);
         }
 
-        this.registerButton('pdb_input', x, y, btnW, btnH, () => this.showPDBInput());
+        this.registerButton('pdb_input', x, y, btnW, btnH, () => this.switchTab('keyboard'));
         y += btnH + gap;
 
         // Load button
@@ -705,6 +711,125 @@ AFRAME.registerComponent('radial-menu', {
     switchTab: function (tabId) {
         this.currentTab = tabId;
         this.selectedIndex = -1;
+        this.draw();
+    },
+
+    drawKeyboardTab: function (ctx, startY) {
+        // Title
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 36px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('Enter PDB ID', 512, startY - 20);
+
+        // Input display
+        var displayY = startY + 20;
+        var displayW = 600;
+        var displayH = 80;
+        var displayX = (1024 - displayW) / 2;
+
+        ctx.fillStyle = '#1a1a2e';
+        this.drawRoundedRect(ctx, displayX, displayY, displayW, displayH, 10, '#1a1a2e');
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = '#00FFFF';
+        ctx.stroke();
+
+        // Display text
+        var displayText = this.pdbInput || '';
+        while (displayText.length < 4) displayText += '_';
+
+        ctx.fillStyle = '#00FF00';
+        ctx.font = 'bold 48px monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText(displayText, 512, displayY + 55);
+
+        // Keyboard layout
+        var keys = [
+            ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'],
+            ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'],
+            ['K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T'],
+            ['U', 'V', 'W', 'X', 'Y', 'Z', '←', '✓']
+        ];
+
+        var keyW = 80;
+        var keyH = 70;
+        var gap = 10;
+        var y = displayY + 120;
+
+        for (var row = 0; row < keys.length; row++) {
+            var rowKeys = keys[row];
+            var rowW = rowKeys.length * (keyW + gap) - gap;
+            var x = (1024 - rowW) / 2;
+
+            for (var col = 0; col < rowKeys.length; col++) {
+                var key = rowKeys[col];
+                var keyX = x + col * (keyW + gap);
+                var keyY = y + row * (keyH + gap);
+
+                // Key color
+                var keyColor = '#333355';
+                if (key === '✓') keyColor = '#33aa33';
+                else if (key === '←') keyColor = '#aa3333';
+
+                // Draw key button
+                this.drawRoundedRect(ctx, keyX, keyY, keyW, keyH, 8, keyColor);
+                ctx.lineWidth = 2;
+                ctx.strokeStyle = '#555555';
+                ctx.stroke();
+
+                // Key label
+                ctx.fillStyle = '#FFFFFF';
+                ctx.font = 'bold 28px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(key, keyX + keyW / 2, keyY + keyH / 2);
+
+                // Register button click - IMPORTANT: capture key in closure
+                var self = this;
+                (function (k) {
+                    self.registerButton('kbd_' + k, keyX, keyY, keyW, keyH, function () {
+                        self.pressKey(k);
+                    });
+                })(key);
+            }
+        }
+
+        // Back button
+        var backY = y + keys.length * (keyH + gap) + 20;
+        this.registerButton('back_from_kbd', 210, backY, 604, 70, () => this.switchTab('main'));
+        this.drawRoundedRect(ctx, 210, backY, 604, 70, 15, '#666666');
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = '#888888';
+        ctx.stroke();
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 28px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('← Back to Main Menu', 512, backY + 45);
+    },
+
+    pressKey: function (key) {
+        console.log('[RadialMenu] Key pressed:', key);
+
+        if (key === '←') {
+            // Backspace
+            this.pdbInput = this.pdbInput.slice(0, -1);
+        } else if (key === '✓') {
+            // Submit
+            if (this.pdbInput.length === 4) {
+                console.log('[RadialMenu] Submitting PDB:', this.pdbInput);
+                this.loadPDB(this.pdbInput);
+                this.pdbInput = '';
+                this.switchTab('main');
+            } else {
+                console.warn('[RadialMenu] PDB ID must be 4 characters');
+            }
+        } else {
+            // Add character
+            if (this.pdbInput.length < 4) {
+                this.pdbInput += key;
+            }
+        }
+
         this.draw();
     },
 
