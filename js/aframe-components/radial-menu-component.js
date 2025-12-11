@@ -1140,36 +1140,79 @@ AFRAME.registerComponent('radial-menu', {
     },
 
     // Structure mode functions
+    // PDB Validation Helper
+    checkPDB: function (actionName) {
+        if (typeof PDB === 'undefined') {
+            console.error('[RadialMenu] ' + actionName + ' FAILED: PDB global is undefined');
+            return false;
+        }
+        if (!PDB.controller) {
+            console.error('[RadialMenu] ' + actionName + ' FAILED: PDB.controller is undefined');
+            // Try to log keys to see what IS there
+            console.log('[RadialMenu] PDB keys:', Object.keys(PDB));
+            return false;
+        }
+        return true;
+    },
+
+    // Structure mode functions
     changeStructureMode: function (mode) {
-        if (typeof PDB === 'undefined' || !PDB.controller) return;
+        if (!this.checkPDB('changeStructureMode')) return;
+
         console.log('[RadialMenu] Changing structure mode to:', mode);
-        PDB.config.mainMode = mode;
-        PDB.controller.refreshGeometryByMode(mode);
-        this.hide();
+        try {
+            PDB.config.mainMode = mode;
+            PDB.controller.refreshGeometryByMode(mode);
+            this.hide();
+        } catch (e) {
+            console.error('[RadialMenu] Error in changeStructureMode:', e);
+        }
     },
 
     changeLigandMode: function (mode) {
-        if (typeof PDB === 'undefined' || !PDB.controller) return;
+        if (!this.checkPDB('changeLigandMode')) return;
+
         console.log('[RadialMenu] Changing ligand mode to:', mode);
-        PDB.config.hetMode = mode;
-        PDB.controller.refreshGeometryByMode(mode);
-        this.hide();
+        try {
+            PDB.config.hetMode = mode;
+            PDB.controller.refreshGeometryByMode(mode);
+            this.hide();
+        } catch (e) {
+            console.error('[RadialMenu] Error in changeLigandMode:', e);
+        }
     },
 
     changeColorMode: function (mode) {
-        if (typeof PDB === 'undefined' || !PDB.controller) return;
+        if (!this.checkPDB('changeColorMode')) return;
+
         console.log('[RadialMenu] Changing color mode to:', mode);
-        PDB.controller.switchColorBymode(mode);
+        try {
+            PDB.controller.switchColorBymode(mode);
+        } catch (e) {
+            console.error('[RadialMenu] Error in changeColorMode:', e);
+        }
     },
 
     toggleLabels: function () {
-        if (typeof PDB === 'undefined' || !PDB.controller) return;
-        PDB.controller.showLabel();
+        if (!this.checkPDB('toggleLabels')) return;
+        try {
+            PDB.controller.showLabel();
+        } catch (e) {
+            console.error('[RadialMenu] Error in toggleLabels:', e);
+        }
     },
 
     toggleMeasure: function () {
-        if (typeof PDB === 'undefined' || !PDB.tool) return;
-        PDB.tool.setMeasureDistance();
+        if (typeof PDB === 'undefined') { return; }
+        if (!PDB.tool) {
+            console.error('[RadialMenu] toggleMeasure FAILED: PDB.tool is undefined');
+            return;
+        }
+        try {
+            PDB.tool.setMeasureDistance();
+        } catch (e) {
+            console.error('[RadialMenu] Error in toggleMeasure:', e);
+        }
     },
 
     // Loading effects
