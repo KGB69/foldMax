@@ -106,13 +106,69 @@ AFRAME.registerComponent('molecular-renderer', {
                 scope.el.sceneEl.emit('pdb-loading-error', { error: error.message });
             }
 
-            // Position and scale
-            scope.el.object3D.position.set(0, 1.6, -3);
-            scope.el.object3D.scale.set(1.0, 1.0, 1.0);
+            // Position and Auto-Fit
+            // scope.el.object3D.position.set(0, 1.6, -3);
+            // scope.el.object3D.scale.set(1.0, 1.0, 1.0);
+
+            // Auto-fit to 3m size, bottom at 0.7m
+            setTimeout(function () {
+                scope.autoFitModel();
+            }, 100); // Slight delay to ensure geometry is ready
+
             scope.el.object3D.visible = true;
         }, function (error) {
             console.error('[MolecularRenderer] Error loading PDB:', error);
             scope.el.sceneEl.emit('pdb-loading-error', { error: error });
         });
+    },
+
+    autoFitModel: function () {
+        var el = this.el;
+        var object = el.object3D;
+
+        // Reset scale first
+        object.scale.set(1, 1, 1);
+        object.rotation.set(0, 0, 0); // Reset rotation to align for reliable bounding box? 
+        // Maybe keep rotation if user wants? But loading new PDB implies reset.
+
+        object.updateMatrixWorld(true);
+        var box = new THREE.Box3().setFromObject(object);
+        var size = box.getSize(new THREE.Vector3());
+        var maxDim = Math.max(size.x, size.y, size.z);
+
+        if (maxDim === 0) {
+            console.warn('[MolecularRenderer] Model has 0 size, cannot auto-fit.');
+            return;
+        }
+
+        // Target Size: 3.0 meters
+        var targetSize = 3.0;
+        var scaleFactor = targetSize / maxDim;
+
+        object.scale.set(scaleFactor, scaleFactor, scaleFactor);
+        object.updateMatrixWorld(true);
+
+        // Re-measure after scaling
+        box.setFromObject(object);
+        var newSize = box.getSize(new THREE.Vector3());
+
+        // Position: Bottom at 0.7m, Center X/Z at 0, -3
+        var worldCenter = box.getCenter(new THREE.Vector3());
+        var bottomY = box.min.y;
+
+        var targetBottom = 0.7;
+        var offsetY = targetBottom - bottomY;
+
+        var targetX = 0;
+        var offsetX = targetX - worldCenter.x;
+
+        var targetZ = -2.5; // Slightly closer than -3 for 3m object
+        var offsetZ = targetZ - worldCenter.z;
+
+        object.position.x += offsetX;
+        object.position.y += offsetY;
+        object.position.z += offsetZ;
+
+        console.log(`[MolecularRenderer] Auto-fitted: Size=${newSize.y.toFixed(2)}m, Scale=${scaleFactor.toFixed(4)}`);
     }
 });
