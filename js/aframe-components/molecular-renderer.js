@@ -45,10 +45,11 @@ AFRAME.registerComponent('molecular-renderer', {
         // -------------------------
         console.log('[MolecularRenderer] Clearing previous model...');
 
-        // Method 1: Clear PDB.GROUP children explicitly
+        // Method 1: Clear PDB.GROUP children AND Remove Groups
         if (typeof PDB !== 'undefined' && PDB.GROUP) {
             for (var g = 0; g < PDB.GROUP_COUNT; g++) {
                 if (PDB.GROUP[g]) {
+                    // Dispose children resources
                     while (PDB.GROUP[g].children.length > 0) {
                         var child = PDB.GROUP[g].children[0];
                         if (child.geometry) child.geometry.dispose();
@@ -61,17 +62,22 @@ AFRAME.registerComponent('molecular-renderer', {
                         }
                         PDB.GROUP[g].remove(child);
                     }
+
+                    // Remove the Group itself from the container
+                    this.el.object3D.remove(PDB.GROUP[g]);
+
+                    // Nullify reference so it's recreated fresh
+                    PDB.GROUP[g] = null;
                 }
             }
         }
 
-        // Method 2: Clear any A-Frame children created by this component
-        // (Just in case some are not in PDB.GROUP)
+        // Method 2: Clear any stray A-Frame children
         while (this.el.object3D.children.length > 0) {
-            // Be careful not to remove things that shouldn't be removed if any
-            // But for this container, we want it empty for the new molecule
-            // Actually, PDB.GROUPs are added to this.el.object3D, so we might want to re-init them instead of removing
-            break; // Rely on Method 1 for now to avoid breaking structure
+            var child = this.el.object3D.children[0];
+            // Safety dispose
+            if (child.geometry) child.geometry.dispose();
+            this.el.object3D.remove(child);
         }
 
         // Use CORS proxy to avoid localhost issues
