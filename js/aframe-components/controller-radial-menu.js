@@ -138,8 +138,15 @@ AFRAME.registerComponent('controller-radial-menu', {
             self.onSegmentHover(segmentObj);
         });
 
+
         segmentEl.addEventListener('raycaster-intersected-cleared', function () {
             self.onSegmentOut(segmentObj);
+        });
+
+        // Universal Click Handler (Mouse/Laser/Gaze)
+        segmentEl.addEventListener('click', function () {
+            console.log('[PieMenu] Click detected on:', itemData.id);
+            self.selectItem(segmentObj);
         });
 
         this.menuGroup.appendChild(segmentEl);
@@ -179,7 +186,7 @@ AFRAME.registerComponent('controller-radial-menu', {
             console.log('[PieMenu] Trigger pressed, isOpen:', self.isOpen);
             if (!self.isOpen) return;
             console.log('[PieMenu] Hovered segment:', self.hoveredSegment ? self.hoveredSegment.id : 'NONE');
-            self.selectHoveredItem();
+            self.selectItem(self.hoveredSegment);
         });
     },
 
@@ -205,15 +212,18 @@ AFRAME.registerComponent('controller-radial-menu', {
         segment.material.opacity = 0.85;
     },
 
-    selectHoveredItem: function () {
-        console.log('[PieMenu] selectHoveredItem called');
+    selectItem: function (segment) {
+        console.log('[PieMenu] selectItem called');
 
-        if (!this.hoveredSegment) {
-            console.warn('[PieMenu] No segment hovered!');
+        // Use argument or fallback to hovered
+        var targetSegment = segment || this.hoveredSegment;
+
+        if (!targetSegment) {
+            console.warn('[PieMenu] No segment selected!');
             return;
         }
 
-        var itemId = this.hoveredSegment.id;
+        var itemId = targetSegment.id;
         console.log('[PieMenu] Selecting item:', itemId);
         this.triggerHaptic(0.6, 50);
 
