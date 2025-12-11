@@ -275,6 +275,12 @@ AFRAME.registerComponent('radial-menu', {
 
         // Clear
         ctx.clearRect(0, 0, w, h);
+
+        // Don't clear buttons here if we are just redrawing for hover
+        // But wait, if we redraw, we need to re-register? 
+        // Actually, buttons definitions shouldn't change during hover redraw.
+        // We will separate 'definition' from 'drawing' if possible, but for now
+        // we just rebuild them. Ideally we shouldn't clear callback refs.
         this.buttons = [];
 
         // DEBUG: Uncomment to see if canvas is drawing
@@ -315,16 +321,23 @@ AFRAME.registerComponent('radial-menu', {
         ctx.lineWidth = 2;
         ctx.strokeStyle = 'rgba(255, 0, 0, 0.8)';
 
-        for (var i = 0; i < this.buttons.length; i++) {
-            var b = this.buttons[i];
-            ctx.strokeRect(b.x, b.y, b.w, b.h);
+        var b = this.buttons[i];
 
-            ctx.fillStyle = 'rgba(255, 0, 0, 0.2)';
-            ctx.font = '10px Arial';
-            ctx.textAlign = 'left';
-            ctx.fillText(b.id, b.x + 5, b.y + 15);
+        // Hover highlight
+        if (this.hoveredButtonId === b.id) {
+            ctx.fillStyle = 'rgba(255, 255, 0, 0.3)';
+            ctx.fillRect(b.x, b.y, b.w, b.h);
         }
-    },
+
+        // Hitbox outline
+        ctx.strokeRect(b.x, b.y, b.w, b.h);
+
+        ctx.fillStyle = 'rgba(255, 0, 0, 0.2)';
+        ctx.font = '10px Arial';
+        ctx.textAlign = 'left';
+        ctx.fillText(b.id, b.x + 5, b.y + 15);
+    }
+},
 
     drawLoadingScreen: function (ctx) {
         var w = this.canvas.width;
@@ -392,12 +405,12 @@ AFRAME.registerComponent('radial-menu', {
         ctx.fillText('Menu', 80, 110);
 
         // Tabs
-        // Tabs - Moved UP into header area to be flush
-        var tabY = 110;
-        var tabW = 160;
+        // Tabs - Centered in header background (50-150 range)
+        var tabY = 75;
+        var tabW = 140; // Slightly narrower
         var tabH = 50;
         var tabGap = 8;
-        var startX = 100;
+        var startX = 220; // Start after 'Menu' title to avoid overlap
 
         var tabs = [
             { id: 'main', label: 'Main', color: 'rgba(0, 150, 255, 0.4)' },
@@ -737,11 +750,54 @@ AFRAME.registerComponent('radial-menu', {
             if (cx >= b.x && cx <= b.x + b.w && cy >= b.y && cy <= b.y + b.h) {
                 console.log('[RadialMenu] HIT BUTTON:', b.id);
                 if (b.callback) b.callback();
-                this.draw(); // Redraw immediately to clear debug marker
+                this.draw(); // Redraw immediately
                 return;
             }
         }
         console.log('[RadialMenu] Click hit nothing');
+    },
+
+    tick: function () {
+        if (!this.isOpen) return;
+
+        // Raycaster intersection for HOVER effect
+        var els = this.el.sceneEl.querySelectorAll('[laser-controls], [cursor]');
+        var foundUV = null;
+
+        for (var i = 0; i < els.length; i++) {
+            var raycaster = els[i].components.raycaster;
+            if (raycaster && raycaster.intersections) {
+                for (var j = 0; j < raycaster.intersections.length; j++) {
+                    if (raycaster.intersections[j].object.el === this.el) {
+                        foundUV = raycaster.intersections[j].uv;
+                        break;
+                    }
+                }
+            }
+            if (foundUV) break;
+        }
+
+        if (foundUV) {
+            var cx = foundUV.x * this.canvas.width;
+            var cy = (1 - foundUV.y) * this.canvas.height;
+
+            var hoveredId = null;
+            for (var k = 0; k < this.buttons.length; k++) {
+                var b = this.buttons[k];
+                if (cx >= b.x && cx <= b.x + b.w && cy >= b.y && cy <= b.y + b.h) {
+                    hoveredId = b.id;
+                    break;
+                }
+            }
+
+            if (this.hoveredButtonId !== hoveredId) {
+                this.hoveredButtonId = hoveredId;
+                this.draw(); // Redraw to show hover highlight
+            }
+        } else if (this.hoveredButtonId) {
+            this.hoveredButtonId = null;
+            this.draw();
+        }
     },
 
     switchTab: function (tabId) {
