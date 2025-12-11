@@ -64,6 +64,36 @@ AFRAME.registerComponent('axis-transform-controls', {
         this.showGizmos();
     },
 
+    deactivate: function () {
+        if (!this.isActive) return; // Prevent double deactivation logs
+
+        console.log('[AxisTransform] Deactivating current mode:', this.mode);
+        this.isActive = false;
+        this.mode = null;
+        this.axis = null;
+        this.valueLabel = null; // Reset label reference to force recreating (or better: hide it)
+
+        // Hide Gizmos
+        this.hideGizmos();
+    },
+
+    handleJoystick: function (detail) {
+        // Vertical movement: detail.y (-1 to 1)
+        // -1 is UP, 1 is DOWN usually (depends on controller)
+        // Let's assume -1 is UP (increase), 1 is DOWN (decrease)
+        // Add deadzone
+        if (Math.abs(detail.y) < 0.2) return;
+
+        var delta = -detail.y * 0.05 * this.data.speed; // Scale factor
+
+        this.applyTransform(delta);
+
+        // Continuous Haptic Feedback
+        // Intensity proportional to speed
+        var intensity = Math.min(Math.abs(detail.y), 1.0) * 0.8;
+        this.triggerHaptic(intensity, 15); // Short 15ms pulse every frame
+    },
+
     measureSize: function (target) {
         if (!target || !target.object3D) return 0;
         var box = new THREE.Box3().setFromObject(target.object3D);
