@@ -226,8 +226,14 @@ AFRAME.registerComponent('controller-radial-menu', {
         } else if (itemId === 'move') {
             this.loadMenu('move');
         } else if (itemId.startsWith('rotate_') || itemId.startsWith('move_') || itemId === 'scale_uniform') {
+            var parts = itemId.split('_');
+            var mode = parts[0];
+            var axis = parts[1];
+
+            console.log('[PieMenu] Emitting transform-mode-start:', mode, axis);
             this.el.sceneEl.emit('transform-mode-start', {
-                mode: itemId,
+                mode: mode,
+                axis: axis,
                 hand: this.data.hand
             });
             this.toggleMenu();
