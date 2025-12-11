@@ -51,38 +51,24 @@ AFRAME.registerComponent('axis-transform-controls', {
         this.axis = axis;
         this.isActive = true;
 
+        if (mode === 'scale') {
+            var target = this.data.target || this.el;
+            // Capture reference size/scale to calculate relationship
+            this.referenceSize = this.measureSize(target);
+            this.referenceScale = target.object3D.scale.x;
+            if (this.referenceScale < 0.0001) this.referenceScale = 1;
+            console.log('[AxisTransform] Reference Size:', this.referenceSize.toFixed(2) + 'm', 'Scale:', this.referenceScale.toFixed(4));
+        }
+
         // Show Gizmos (Phase 4)
         this.showGizmos();
     },
 
-    deactivate: function () {
-        if (!this.isActive) return; // Prevent double deactivation logs
-
-        console.log('[AxisTransform] Deactivating current mode:', this.mode);
-        this.isActive = false;
-        this.mode = null;
-        this.axis = null;
-        this.valueLabel = null; // Reset label reference to force recreating (or better: hide it)
-
-        // Hide Gizmos
-        this.hideGizmos();
-    },
-
-    handleJoystick: function (detail) {
-        // Vertical movement: detail.y (-1 to 1)
-        // -1 is UP, 1 is DOWN usually (depends on controller)
-        // Let's assume -1 is UP (increase), 1 is DOWN (decrease)
-        // Add deadzone
-        if (Math.abs(detail.y) < 0.2) return;
-
-        var delta = -detail.y * 0.05 * this.data.speed; // Scale factor
-
-        this.applyTransform(delta);
-
-        // Continuous Haptic Feedback
-        // Intensity proportional to speed
-        var intensity = Math.min(Math.abs(detail.y), 1.0) * 0.8;
-        this.triggerHaptic(intensity, 15); // Short 15ms pulse every frame
+    measureSize: function (target) {
+        if (!target || !target.object3D) return 0;
+        var box = new THREE.Box3().setFromObject(target.object3D);
+        var size = box.getSize(new THREE.Vector3());
+        return Math.max(size.x, size.y, size.z);
     },
 
     applyTransform: function (delta) {
@@ -107,7 +93,22 @@ AFRAME.registerComponent('axis-transform-controls', {
 
                 // Prevent negative/zero scale
                 var newScale = scale.x * factor;
-                if (newScale < 0.1) newScale = 0.1;
+
+                // Enforce Limits: 1m to 17m
+                if (this.referenceSize && this.referenceScale) {
+                    var sizePerUnit = this.referenceSize / this.referenceScale;
+                    var predictedSize = newScale * sizePerUnit;
+
+                    if (predictedSize > 17.0) {
+                        newScale = 17.0 / sizePerUnit;
+                        // Feedback?
+                    }
+                    if (predictedSize < 1.0) {
+                        newScale = 1.0 / sizePerUnit;
+                    }
+                }
+
+                if (newScale < 0.001) newScale = 0.001; // Safety fallback
 
                 if (this.axis === 'uniform') {
                     target.setAttribute('scale', { x: newScale, y: newScale, z: newScale });
