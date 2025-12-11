@@ -6,9 +6,9 @@
 AFRAME.registerComponent('controller-radial-menu', {
     schema: {
         hand: { default: 'right' },
-        radius: { default: 0.12 },
-        innerRadius: { default: 0.03 },
-        distance: { default: 0.15 },
+        radius: { default: 0.20 },      // Increased size
+        innerRadius: { default: 0.05 }, // Increased hole
+        distance: { default: 0.40 },    // Pushed back for better raycasting
         baseColor: { default: '#333333' },
         highlightColor: { default: '#00FFFF' },
         segmentGap: { default: 2 } // degrees
