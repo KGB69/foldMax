@@ -9,7 +9,7 @@ AFRAME.registerComponent('vr-keyboard', {
     schema: {
         width: { default: 0.8 },
         height: { default: 0.5 },
-        distance: { default: 1.5 }
+        distance: { default: 0.8 }
     },
 
     init: function () {

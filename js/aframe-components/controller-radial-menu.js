@@ -1,8 +1,6 @@
 /**
  * Pie-Chart Radial Menu Component
- * 
- * A proper pie-chart style menu with wedge segments for VR controllers.
- * Replaces the previous ring-based menu.
+ * Refactored for Pointer/Raycaster Selection
  */
 
 AFRAME.registerComponent('controller-radial-menu', {
@@ -22,15 +20,12 @@ AFRAME.registerComponent('controller-radial-menu', {
         this.isOpen = false;
         this.menuGroup = null;
         this.segments = [];
-        this.selectedIndex = 0;
-        this.joystickReset = true;
+        this.hoveredSegment = null; // Track currently hovered segment
         this.menuState = 'main';
-        this.keyboardActive = false;
 
-        // Define menu structures
+        // Define menu structures (Enter PDB removed)
         this.menus = {
             main: [
-                { id: 'enter_pdb', label: 'Enter PDB', icon: '📝', color: '#4CAF50' },
                 { id: 'rotate', label: 'Rotate', icon: '↻', color: '#FF9800' },
                 { id: 'scale', label: 'Scale', icon: '⤢', color: '#9C27B0' },
                 { id: 'move', label: 'Move', icon: '↔', color: '#2196F3' }
@@ -57,7 +52,7 @@ AFRAME.registerComponent('controller-radial-menu', {
         this.loadMenu('main');
         this.setupListeners();
 
-        console.log('[PieMenu] Ready');
+        console.log('[PieMenu] Ready (Pointer Mode)');
     },
 
     createMenuContainer: function () {
@@ -68,13 +63,18 @@ AFRAME.registerComponent('controller-radial-menu', {
     },
 
     loadMenu: function (menuName) {
+        if (!this.menus[menuName]) {
+            console.error('[PieMenu] Menu not found:', menuName);
+            return;
+        }
+
         // Clear existing segments
         while (this.menuGroup.firstChild) {
             this.menuGroup.removeChild(this.menuGroup.firstChild);
         }
         this.segments = [];
+        this.hoveredSegment = null;
         this.menuState = menuName;
-        this.selectedIndex = 0;
 
         var items = this.menus[menuName];
         var numItems = items.length;
@@ -89,8 +89,6 @@ AFRAME.registerComponent('controller-radial-menu', {
             var segment = this.createPieSegment(item, startAngle, endAngle, i);
             this.segments.push(segment);
         }
-
-        this.updateSelection();
     },
 
     createPieSegment: function (itemData, startAngle, endAngle, index) {
@@ -102,28 +100,10 @@ AFRAME.registerComponent('controller-radial-menu', {
         var startRad = THREE.MathUtils.degToRad(startAngle);
         var endRad = THREE.MathUtils.degToRad(endAngle);
 
-        // Start at inner arc
-        shape.moveTo(
-            Math.cos(startRad) * innerRadius,
-            Math.sin(startRad) * innerRadius
-        );
-
-        // Line to outer arc start
-        shape.lineTo(
-            Math.cos(startRad) * radius,
-            Math.sin(startRad) * radius
-        );
-
-        // Outer arc
+        shape.moveTo(Math.cos(startRad) * innerRadius, Math.sin(startRad) * innerRadius);
+        shape.lineTo(Math.cos(startRad) * radius, Math.sin(startRad) * radius);
         shape.absarc(0, 0, radius, startRad, endRad, false);
-
-        // Line to inner arc end
-        shape.lineTo(
-            Math.cos(endRad) * innerRadius,
-            Math.sin(endRad) * innerRadius
-        );
-
-        // Inner arc (reverse)
+        shape.lineTo(Math.cos(endRad) * innerRadius, Math.sin(endRad) * innerRadius);
         shape.absarc(0, 0, innerRadius, endRad, startRad, true);
 
         var geometry = new THREE.ShapeGeometry(shape);
@@ -140,6 +120,28 @@ AFRAME.registerComponent('controller-radial-menu', {
         // Container entity
         var segmentEl = document.createElement('a-entity');
         segmentEl.setObject3D('mesh', mesh);
+
+        // Make interactable using raycaster
+        segmentEl.classList.add('clickable');
+
+        // Add listeners for hover effect
+        var self = this;
+        var segmentObj = {
+            id: itemData.id,
+            el: segmentEl,
+            mesh: mesh,
+            material: material,
+            baseColor: new THREE.Color(itemData.color || this.data.baseColor)
+        };
+
+        segmentEl.addEventListener('mouseenter', function () {
+            self.onSegmentHover(segmentObj);
+        });
+
+        segmentEl.addEventListener('mouseleave', function () {
+            self.onSegmentOut(segmentObj);
+        });
+
         this.menuGroup.appendChild(segmentEl);
 
         // Add label
@@ -154,92 +156,60 @@ AFRAME.registerComponent('controller-radial-menu', {
         labelEl.setAttribute('width', 0.3);
         labelEl.setAttribute('color', '#FFFFFF');
         labelEl.setAttribute('position', labelX + ' ' + labelY + ' 0.002');
+
+        // Pass interactions on label through to segment? 
+        // A-text is an entity, might block raycaster if not handled. 
+        // Let's make label clickable too or non-interactive.
+        // Actually, raycaster normally hits mesh first. Let's create label but maybe ignore it for now or assume segment is big enough.
         this.menuGroup.appendChild(labelEl);
 
-        return {
-            id: itemData.id,
-            el: segmentEl,
-            labelEl: labelEl,
-            mesh: mesh,
-            material: material,
-            data: itemData,
-            baseColor: new THREE.Color(itemData.color || this.data.baseColor),
-            index: index
-        };
+        return segmentObj;
     },
 
     setupListeners: function () {
         var self = this;
 
+        // Grip to toggle
         this.el.addEventListener('gripdown', function () {
             self.toggleMenu();
         });
 
-        this.el.addEventListener('thumbstickmoved', function (evt) {
-            if (!self.isOpen || self.keyboardActive) return;
-            self.handleJoystick(evt.detail);
-        });
-
+        // Trigger to select currently hovered item
         this.el.addEventListener('triggerdown', function () {
             if (!self.isOpen) return;
-            self.selectCurrentItem();
+            self.selectHoveredItem();
         });
     },
 
-    handleJoystick: function (detail) {
-        var x = detail.x;
-        var y = detail.y;
-        var deadzone = 0.4;
+    onSegmentHover: function (segment) {
+        if (!this.isOpen) return;
+        this.hoveredSegment = segment;
 
-        if (Math.abs(x) < deadzone && Math.abs(y) < deadzone) {
-            this.joystickReset = true;
-            return;
-        }
+        // Highlight
+        segment.material.color.set(this.data.highlightColor);
+        segment.material.opacity = 1.0;
 
-        if (!this.joystickReset) return;
-        this.joystickReset = false;
-
-        // Calculate angle from joystick position
-        var angle = Math.atan2(y, x) * (180 / Math.PI);
-        angle = (angle + 360) % 360; // Normalize to 0-360
-
-        // Convert to segment index
-        var numItems = this.segments.length;
-        var segmentAngle = 360 / numItems;
-        // Offset by 90 degrees (menu starts from top)
-        var adjustedAngle = (angle + 90 + segmentAngle / 2) % 360;
-        var newIndex = Math.floor(adjustedAngle / segmentAngle);
-
-        if (newIndex !== this.selectedIndex) {
-            this.selectedIndex = newIndex;
-            this.updateSelection();
-            this.triggerHaptic(0.3, 30);
-        }
+        this.triggerHaptic(0.2, 20);
     },
 
-    updateSelection: function () {
-        var self = this;
-        this.segments.forEach(function (seg, i) {
-            if (i === self.selectedIndex) {
-                seg.material.color.set(self.data.highlightColor);
-                seg.material.opacity = 1.0;
-            } else {
-                seg.material.color.copy(seg.baseColor);
-                seg.material.opacity = 0.85;
-            }
-        });
+    onSegmentOut: function (segment) {
+        if (!this.isOpen) return;
+        if (this.hoveredSegment === segment) {
+            this.hoveredSegment = null;
+        }
+
+        // Reset color
+        segment.material.color.copy(segment.baseColor);
+        segment.material.opacity = 0.85;
     },
 
-    selectCurrentItem: function () {
-        if (this.selectedIndex < 0 || this.selectedIndex >= this.segments.length) return;
+    selectHoveredItem: function () {
+        if (!this.hoveredSegment) return;
 
-        var segment = this.segments[this.selectedIndex];
-        var itemId = segment.id;
-
+        var itemId = this.hoveredSegment.id;
         console.log('[PieMenu] Selected:', itemId);
         this.triggerHaptic(0.6, 50);
 
-        // Handle selection
         if (itemId === 'back') {
             this.loadMenu('main');
         } else if (itemId === 'rotate') {
@@ -248,34 +218,13 @@ AFRAME.registerComponent('controller-radial-menu', {
             this.loadMenu('scale');
         } else if (itemId === 'move') {
             this.loadMenu('move');
-        } else if (itemId === 'enter_pdb') {
-            this.openKeyboard();
         } else if (itemId.startsWith('rotate_') || itemId.startsWith('move_') || itemId === 'scale_uniform') {
-            // Emit transform event
             this.el.sceneEl.emit('transform-mode-start', {
                 mode: itemId,
                 hand: this.data.hand
             });
-            this.toggleMenu(); // Close menu
+            this.toggleMenu();
         }
-    },
-
-    openKeyboard: function () {
-        console.log('[PieMenu] Opening VR Keyboard for PDB input');
-        this.keyboardActive = true;
-        this.el.sceneEl.emit('vr-keyboard-open', { callback: this.onPDBEntered.bind(this) });
-    },
-
-    onPDBEntered: function (pdbId) {
-        console.log('[PieMenu] PDB entered:', pdbId);
-        this.keyboardActive = false;
-        if (pdbId && pdbId.length > 0) {
-            // Load the PDB
-            if (typeof PDB !== 'undefined' && PDB.loader) {
-                PDB.loader.load(pdbId);
-            }
-        }
-        this.toggleMenu();
     },
 
     toggleMenu: function () {
@@ -286,9 +235,12 @@ AFRAME.registerComponent('controller-radial-menu', {
         if (this.isOpen) {
             console.log('[PieMenu] OPEN');
             this.el.sceneEl.emit('transform-mode-end');
+            // Ensure raycaster intercepts menu
+            this.menuGroup.classList.add('clickable');
             this.loadMenu('main');
         } else {
             console.log('[PieMenu] CLOSED');
+            this.hoveredSegment = null;
         }
     },
 
@@ -303,7 +255,6 @@ AFRAME.registerComponent('controller-radial-menu', {
     },
 
     tick: function () {
-        // Keep menu facing camera
         if (this.isOpen && this.menuGroup) {
             var camera = document.querySelector('#camera');
             if (camera) {
@@ -314,4 +265,4 @@ AFRAME.registerComponent('controller-radial-menu', {
     }
 });
 
-console.log('[PieMenu] Component registered');
+console.log('[PieMenu] Component registered (Pointer Version)');

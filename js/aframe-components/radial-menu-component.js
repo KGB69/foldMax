@@ -736,15 +736,27 @@ AFRAME.registerComponent('radial-menu', {
     },
 
     showPDBInput: function () {
-        var pdbId = prompt('Enter PDB ID (4 characters):');
-        if (pdbId && pdbId.length === 4) {
-            this.loadPDB(pdbId);
-        }
+        // Use VR Keyboard instead of prompt
+        console.log('[RadialMenu] Requesting VR Keyboard');
+
+        // Hide menu
+        this.hide();
+
+        var self = this;
+        this.el.sceneEl.emit('vr-keyboard-open', {
+            callback: function (pdbId) {
+                if (pdbId && pdbId.length > 0) {
+                    self.loadPDB(pdbId);
+                }
+            }
+        });
     },
 
     loadPDB: function (pdbId) {
-        pdbId = pdbId || prompt('Enter PDB ID:');
-        if (!pdbId || pdbId.length !== 4) return;
+        if (!pdbId) {
+            console.error('[RadialMenu] No PDB ID provided');
+            return;
+        }
 
         console.log('[RadialMenu] Loading PDB:', pdbId);
         this.hide();
