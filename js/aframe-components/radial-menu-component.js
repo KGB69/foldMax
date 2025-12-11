@@ -1045,6 +1045,28 @@ AFRAME.registerComponent('radial-menu', {
         }
     },
 
+    return [];
+}
+    },
+
+    drawCalibrationBtn: function (ctx, label, x, y, size, axis, amount) {
+        ctx.fillStyle = 'rgba(100, 100, 100, 0.5)';
+        this.drawRoundedRect(ctx, x, y, size, size, 5, ctx.fillStyle);
+
+        ctx.fillStyle = '#fff';
+        ctx.font = '20px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText(label, x + size / 2, y + size / 2 + 7);
+
+        var self = this;
+        this.registerButton('cal_' + axis + '_' + (amount > 0 ? 'p' : 'n'), x, y, size, size, function () {
+            self.uvOffset[axis] += amount;
+            localStorage.setItem('vrmol_uv_offset', JSON.stringify(self.uvOffset));
+            console.log('[RadialMenu] Offset updated:', self.uvOffset);
+            self.draw();
+        });
+    },
+
     saveRecentPDB: function (pdbId) {
         try {
             var recent = this.getRecentPDBs();
