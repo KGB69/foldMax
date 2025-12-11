@@ -27,6 +27,11 @@ AFRAME.registerComponent('radial-menu', {
         // PDB keyboard input
         this.pdbInput = '';
 
+        // Calibration Offset (Load from storage if available)
+        var savedOffset = localStorage.getItem('vrmol_uv_offset');
+        this.uvOffset = savedOffset ? JSON.parse(savedOffset) : { x: 0, y: 0 };
+        console.log('[RadialMenu] Loaded offset:', this.uvOffset);
+
         // Canvas setup
         this.canvas = document.createElement('canvas');
         this.canvas.width = 1024;
@@ -396,22 +401,38 @@ AFRAME.registerComponent('radial-menu', {
     },
 
     drawHeader: function (ctx) {
-        // Background
-        this.drawRoundedRect(ctx, 50, 50, 924, 100, { tl: 40, tr: 40, bl: 0, br: 0 }, 'rgba(0, 150, 200, 0.3)');
+        // Background - TALLER to fit Title + Tabs below + Calibration
+        this.drawRoundedRect(ctx, 50, 50, 924, 160, { tl: 40, tr: 40, bl: 0, br: 0 }, 'rgba(0, 150, 200, 0.3)');
 
         // Title
         ctx.font = 'bold 50px Arial';
         ctx.fillStyle = '#00ffff';
         ctx.textAlign = 'left';
-        ctx.fillText('Menu', 80, 110);
+        ctx.fillText('Menu', 80, 100);
 
-        // Tabs
-        // Tabs - Centered in header background (50-150 range)
-        var tabY = 75;
-        var tabW = 140; // Slightly narrower
+        // Calibration Controls (Top Right)
+        var calX = 750;
+        var calY = 60;
+        var calSize = 30;
+        var calPad = 5;
+
+        ctx.textAlign = 'center';
+        ctx.font = '16px Arial';
+        ctx.fillStyle = 'rgba(255,255,255,0.5)';
+        ctx.fillText('Calibrate', calX + calSize + calPad / 2, calY - 10);
+
+        // Arrows: Up/Down/Left/Right
+        this.drawCalibrationBtn(ctx, '↑', calX + calSize + calPad, calY, calSize, 'y', 0.01);
+        this.drawCalibrationBtn(ctx, '↓', calX + calSize + calPad, calY + calSize + calPad, calSize, 'y', -0.01);
+        this.drawCalibrationBtn(ctx, '←', calX, calY + calSize / 2 + calPad / 2, calSize, 'x', -0.01);
+        this.drawCalibrationBtn(ctx, '→', calX + (calSize + calPad) * 2, calY + calSize / 2 + calPad / 2, calSize, 'x', 0.01);
+
+        // Tabs - Centered BELOW title
+        var tabY = 130;
+        var tabW = 140;
         var tabH = 50;
         var tabGap = 8;
-        var startX = 220; // Start after 'Menu' title to avoid overlap
+        var startX = 146; // Centered (50 + (924-732)/2)
 
         var tabs = [
             { id: 'main', label: 'Main', color: 'rgba(0, 150, 255, 0.4)' },
@@ -733,10 +754,10 @@ AFRAME.registerComponent('radial-menu', {
     handleClick: function (uv) {
         if (!uv || !this.isOpen) return;
 
-        var cx = uv.x * this.canvas.width;
-        var cy = (1 - uv.y) * this.canvas.height;
+        var cx = (uv.x + this.uvOffset.x) * this.canvas.width;
+        var cy = (1 - (uv.y + this.uvOffset.y)) * this.canvas.height;
 
-        console.log('[RadialMenu] Click at UV:', uv.x.toFixed(3), uv.y.toFixed(3), 'Canvas:', cx.toFixed(0), cy.toFixed(0));
+        console.log('[RadialMenu] Click UV:', uv.x.toFixed(3), uv.y.toFixed(3), 'Calibrated:', (uv.x + this.uvOffset.x).toFixed(3), (uv.y + this.uvOffset.y).toFixed(3));
 
         // VISUAL DEBUG: Draw click marker
         var ctx = this.ctx;
@@ -779,8 +800,9 @@ AFRAME.registerComponent('radial-menu', {
         }
 
         if (foundUV) {
-            var cx = foundUV.x * this.canvas.width;
-            var cy = (1 - foundUV.y) * this.canvas.height;
+            // Apply Calibration
+            var cx = (foundUV.x + this.uvOffset.x) * this.canvas.width;
+            var cy = (1 - (foundUV.y + this.uvOffset.y)) * this.canvas.height;
 
             var hoveredId = null;
             for (var k = 0; k < this.buttons.length; k++) {
@@ -1045,8 +1067,46 @@ AFRAME.registerComponent('radial-menu', {
         }
     },
 
-    return [];
-}
+    setupVRControls: function () {
+        var self = this;
+        // Wait for controllers to initialize
+        setTimeout(function () {
+            var rHand = document.querySelector('[laser-controls="hand: right"]') || document.querySelector('#rightHand');
+            var lHand = document.querySelector('[laser-controls="hand: left"]') || document.querySelector('#leftHand');
+
+            if (rHand) {
+                console.log('[RadialMenu] Binding Right Controller events');
+                rHand.addEventListener('bbuttondown', function () {
+                    console.log('[RadialMenu] B button pressed');
+                    self.toggle();
+                });
+                rHand.addEventListener('abuttondown', function () {
+                    if (self.isInputMode) self.cancelInput();
+                    else if (self.isOpen) self.hide();
+                });
+                rHand.addEventListener('triggerdown', function () {
+                    if (self.isOpen) self.selectCurrent();
+                });
+
+                // Thumbstick navigation
+                rHand.addEventListener('axismove', function (evt) {
+                    if (!self.isOpen) return;
+                    // Oculus/WebXR standard: axis[2] is X, axis[3] is Y usually? 
+                    // A-Frame emits thumbstickmoved event too?
+                });
+
+                // Use thumbstickmoved if available (e.g. oculus-touch-controls)
+                rHand.addEventListener('thumbstickmoved', function (evt) {
+                    if (!self.isOpen) return;
+                    if (evt.detail.y > 0.5) self.navigate('down');
+                    if (evt.detail.y < -0.5) self.navigate('up');
+                    if (evt.detail.x > 0.5) self.navigate('right');
+                    if (evt.detail.x < -0.5) self.navigate('left');
+                });
+            } else {
+                console.warn('[RadialMenu] Right controller not found');
+            }
+        }, 2000); // Delay to ensure controllers are ready
     },
 
     drawCalibrationBtn: function (ctx, label, x, y, size, axis, amount) {
@@ -1237,12 +1297,7 @@ AFRAME.registerComponent('radial-menu', {
         }
     },
 
-    tick: function (time, delta) {
-        // Update loading animation if active
-        if (this.isLoading && this.mesh.visible) {
-            // Animation is handled by interval
-        }
-    }
+
 });
 
 console.log('[RadialMenu] Component registered');
