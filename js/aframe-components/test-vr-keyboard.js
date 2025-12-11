@@ -35,6 +35,29 @@ AFRAME.registerComponent('test-vr-keyboard', {
 
         console.log('[TEST-KEYBOARD] Forced visible to true');
         console.log('[TEST-KEYBOARD] Setup complete');
+
+        // Store callback for later
+        this.callback = null;
+    },
+
+    // Public API - simple show/hide methods
+    show: function (callback) {
+        console.log('[TEST-KEYBOARD] ===== SHOW() CALLED =====');
+        console.log('[TEST-KEYBOARD] Callback provided:', callback ? 'YES' : 'NO');
+        this.callback = callback;
+        this.el.setAttribute('visible', true);
+        console.log('[TEST-KEYBOARD] Set visible to TRUE');
+        console.log('[TEST-KEYBOARD] Current visibility:', this.el.getAttribute('visible'));
+    },
+
+    hide: function (result) {
+        console.log('[TEST-KEYBOARD] ===== HIDE() CALLED =====');
+        console.log('[TEST-KEYBOARD] Result:', result);
+        this.el.setAttribute('visible', false);
+        if (this.callback) {
+            this.callback(result);
+            this.callback = null;
+        }
     },
 
     tick: function (time, delta) {
