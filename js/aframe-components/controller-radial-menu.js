@@ -176,7 +176,9 @@ AFRAME.registerComponent('controller-radial-menu', {
 
         // Trigger to select currently hovered item
         this.el.addEventListener('triggerdown', function () {
+            console.log('[PieMenu] Trigger pressed, isOpen:', self.isOpen);
             if (!self.isOpen) return;
+            console.log('[PieMenu] Hovered segment:', self.hoveredSegment ? self.hoveredSegment.id : 'NONE');
             self.selectHoveredItem();
         });
     },
@@ -204,10 +206,15 @@ AFRAME.registerComponent('controller-radial-menu', {
     },
 
     selectHoveredItem: function () {
-        if (!this.hoveredSegment) return;
+        console.log('[PieMenu] selectHoveredItem called');
+
+        if (!this.hoveredSegment) {
+            console.warn('[PieMenu] No segment hovered!');
+            return;
+        }
 
         var itemId = this.hoveredSegment.id;
-        console.log('[PieMenu] Selected:', itemId);
+        console.log('[PieMenu] Selecting item:', itemId);
         this.triggerHaptic(0.6, 50);
 
         if (itemId === 'back') {

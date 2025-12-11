@@ -136,8 +136,12 @@ AFRAME.registerComponent('vr-keyboard', {
 
         // Listen for keyboard open event
         this.el.sceneEl.addEventListener('vr-keyboard-open', function (evt) {
+            console.log('[VRKeyboard] Event received! Opening keyboard...');
             self.callback = evt.detail.callback;
-            self.open();
+            // Defer to next frame to ensure scene is ready
+            setTimeout(function () {
+                self.open();
+            }, 100);
         });
 
         // Controller input - listen to both hands
@@ -304,7 +308,7 @@ AFRAME.registerComponent('vr-keyboard', {
     },
 
     open: function () {
-        console.log('[VRKeyboard] Opening');
+        console.log('[VRKeyboard] Opening keyboard...');
         this.isOpen = true;
         this.inputValue = '';
         this.selectedKeyIndex = 0;
@@ -312,17 +316,32 @@ AFRAME.registerComponent('vr-keyboard', {
 
         // Position in front of camera
         var camera = document.querySelector('#camera');
-        if (camera) {
-            var camPos = camera.object3D.getWorldPosition(new THREE.Vector3());
-            var camDir = new THREE.Vector3(0, 0, -1);
-            camDir.applyQuaternion(camera.object3D.quaternion);
-
-            var kbPos = camPos.clone().add(camDir.multiplyScalar(this.data.distance));
-            this.keyboardEl.object3D.position.copy(kbPos);
-            this.keyboardEl.object3D.lookAt(camPos);
+        if (!camera) {
+            console.error('[VRKeyboard] Camera not found!');
+            return;
         }
 
+        console.log('[VRKeyboard] Camera found, positioning keyboard...');
+        var camPos = camera.object3D.getWorldPosition(new THREE.Vector3());
+        var camDir = new THREE.Vector3(0, 0, -1);
+        camDir.applyQuaternion(camera.object3D.quaternion);
+
+        var kbPos = camPos.clone().add(camDir.multiplyScalar(this.data.distance));
+        this.keyboardEl.object3D.position.copy(kbPos);
+        this.keyboardEl.object3D.lookAt(camPos);
+
+        console.log('[VRKeyboard] Position:', kbPos);
+        console.log('[VRKeyboard] Setting visible to true...');
+
         this.keyboardEl.setAttribute('visible', true);
+
+        // Force visibility on all children
+        this.keyboardEl.object3D.visible = true;
+        this.keyboardEl.object3D.traverse(function (child) {
+            child.visible = true;
+        });
+
+        console.log('[VRKeyboard] Keyboard should now be visible!');
         this.updateDisplay();
         this.updateSelection();
     },

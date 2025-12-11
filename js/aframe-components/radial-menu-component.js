@@ -453,7 +453,7 @@ AFRAME.registerComponent('radial-menu', {
             ctx.fillText(this.isInputMode ? '|' : 'Enter PDB ID (4 characters)', x + 20, y + 50);
         }
 
-        this.registerButton('pdb_input', x, y, btnW, btnH, () => this.activateInput());
+        this.registerButton('pdb_input', x, y, btnW, btnH, () => this.showPDBInput());
         y += btnH + gap;
 
         // Load button
