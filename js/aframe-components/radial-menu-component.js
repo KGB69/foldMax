@@ -321,23 +321,24 @@ AFRAME.registerComponent('radial-menu', {
         ctx.lineWidth = 2;
         ctx.strokeStyle = 'rgba(255, 0, 0, 0.8)';
 
-        var b = this.buttons[i];
+        for (var i = 0; i < this.buttons.length; i++) {
+            var b = this.buttons[i];
 
-        // Hover highlight
-        if (this.hoveredButtonId === b.id) {
-            ctx.fillStyle = 'rgba(255, 255, 0, 0.3)';
-            ctx.fillRect(b.x, b.y, b.w, b.h);
+            // Hover highlight
+            if (this.hoveredButtonId === b.id) {
+                ctx.fillStyle = 'rgba(255, 255, 0, 0.3)';
+                ctx.fillRect(b.x, b.y, b.w, b.h);
+            }
+
+            // Hitbox outline
+            ctx.strokeRect(b.x, b.y, b.w, b.h);
+
+            ctx.fillStyle = 'rgba(255, 0, 0, 0.2)';
+            ctx.font = '10px Arial';
+            ctx.textAlign = 'left';
+            ctx.fillText(b.id, b.x + 5, b.y + 15);
         }
-
-        // Hitbox outline
-        ctx.strokeRect(b.x, b.y, b.w, b.h);
-
-        ctx.fillStyle = 'rgba(255, 0, 0, 0.2)';
-        ctx.font = '10px Arial';
-        ctx.textAlign = 'left';
-        ctx.fillText(b.id, b.x + 5, b.y + 15);
-    }
-},
+    },
 
     drawLoadingScreen: function (ctx) {
         var w = this.canvas.width;
