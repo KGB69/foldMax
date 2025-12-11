@@ -48,6 +48,9 @@
     <!-- Simplified components -->
     <script src="js/aframe-components/simple-controller-menu.js"></script>
     <script src="js/aframe-components/simple-vr-keyboard.js"></script>
+    <!-- DIAGNOSTIC TEST COMPONENTS -->
+    <script src="js/aframe-components/test-controller-menu.js"></script>
+    <script src="js/aframe-components/test-vr-keyboard.js"></script>
 
     <script>
         // One-time initialization
@@ -75,7 +78,7 @@
             <a-entity id="left-hand" oculus-touch-controls="hand: left" laser-controls="hand: left"
                 raycaster="objects: .clickable; far: 5"></a-entity>
             <a-entity id="right-hand" oculus-touch-controls="hand: right" laser-controls="hand: right"
-                raycaster="objects: .clickable; far: 5" simple-controller-menu></a-entity>
+                raycaster="objects: .clickable; far: 5" test-controller-menu></a-entity>
         </a-entity>
 
 
@@ -88,8 +91,8 @@
         <!-- VR Console - Shows logs in headset -->
         <a-entity vr-console></a-entity>
 
-        <!-- VR Keyboard for PDB Input (Persistent) -->
-        <a-entity id="simple-vr-keyboard" simple-vr-keyboard position="0 1.3 -0.8" visible="false"></a-entity>
+        <!-- TEST VR Keyboard (ALWAYS VISIBLE FOR DEBUGGING) -->
+        <a-entity id="test-vr-keyboard" test-vr-keyboard position="0 1.5 -1" visible="true"></a-entity>
 
         <!-- Mouse Cursor for Desktop -->
         <a-entity cursor="rayOrigin: mouse" raycaster="objects: .clickable"></a-entity>
