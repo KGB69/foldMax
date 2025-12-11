@@ -304,7 +304,7 @@ AFRAME.registerComponent('radial-menu', {
             this.drawSelection(ctx);
 
             // DEBUG: Draw hitboxes to verify alignment
-            // this.drawHitBoxes(ctx);
+            this.drawHitBoxes(ctx);
         }
 
         this.texture.needsUpdate = true;
