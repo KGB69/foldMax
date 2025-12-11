@@ -7,7 +7,13 @@ AFRAME.registerComponent('vr-debug-panel', {
     schema: {},
 
     init: function () {
-        console.log('[VR Debug] Initializing...');
+        console.log('[VR Debug] Component disabled/deprecated');
+        // DISABLED - Unified into vr-console
+        return;
+    },
+
+    // Legacy code below is unreachable/unused
+    init_legacy: function () {
 
         this.isVisible = true;
         this.updateInterval = null;
