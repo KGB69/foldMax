@@ -15,7 +15,7 @@ AFRAME.registerComponent('environment-loader', {
         // Setup Uniforms
         this.uniforms = {
             uTime: { value: 0 },
-            uRingSpacing: { value: 21.0 },
+            uRingSpacing: { value: 2.0 }, // Scaled down for 25m floor
             uPulseSpeed: { value: 0.3 },
             uPulseIntensity: { value: 0.3 },
             uBreatheSpeed: { value: 0.3 },
@@ -42,8 +42,8 @@ AFRAME.registerComponent('environment-loader', {
     },
 
     addProceduralGround: function () {
-        var groundRadius = 250;
-        var geometry = new THREE.CircleGeometry(groundRadius, 128);
+        // Size 25m XnY (Square)
+        var geometry = new THREE.PlaneGeometry(25, 25, 32, 32);
 
         var vertexShader = `
             varying vec2 vUv;
@@ -79,9 +79,9 @@ AFRAME.registerComponent('environment-loader', {
                 float radialPattern = fract(angle * segments / (2.0 * 3.14159));
                 float radialLine = smoothstep(0.48, 0.5, radialPattern) - smoothstep(0.5, 0.52, radialPattern);
                 
-                float pulseWave = sin(dist * 0.3 - uTime * uPulseSpeed) * 0.5 + 0.5;
+                float pulseWave = sin(dist * 2.0 - uTime * uPulseSpeed) * 0.5 + 0.5; // Faster spatial freq
                 pulseWave = pow(pulseWave, 2.0);
-                pulseWave *= smoothstep(250.0, 50.0, dist);
+                pulseWave *= smoothstep(12.0, 2.0, dist); // Fade out at 12m
                 
                 float breathe = sin(uTime * uBreatheSpeed) * 0.5 + 0.5;
                 
@@ -115,17 +115,20 @@ AFRAME.registerComponent('environment-loader', {
                 finalColor += scanColor * scanWave * 0.5;
                 finalColor += ringColor * breathe * 0.1;
                 
-                float edgeDist = 250.0 - dist;
-                float edgeGlow = smoothstep(0.0, 20.0, edgeDist);
-                float boundaryWarning = smoothstep(30.0, 10.0, edgeDist);
+                // Edge warning logic (adjusted for 12.5m half-size)
+                float edgeDist = 12.5 - dist;
+                float edgeGlow = smoothstep(0.0, 1.0, edgeDist);
+                float boundaryWarning = smoothstep(1.5, 0.5, edgeDist);
                 
                 finalColor += pulseColor * boundaryWarning * 0.5;
                 
-                float alpha = smoothstep(250.0, 240.0, dist);
+                // Alpha fade at edge
+                float alpha = smoothstep(12.5, 11.5, dist);
                 alpha *= edgeGlow;
                 
+                // Fog logic (adjusted)
                 vec3 fogColor = vec3(0.15, 0.02, 0.05);
-                float fogAmount = 1.0 - smoothstep(200.0, 250.0, dist);
+                float fogAmount = 1.0 - smoothstep(10.0, 15.0, dist); 
                 finalColor = mix(fogColor, finalColor, fogAmount);
                 
                 gl_FragColor = vec4(finalColor, alpha * 0.9);
