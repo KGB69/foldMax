@@ -148,8 +148,8 @@ AFRAME.registerComponent('environment-loader', {
         mesh.position.y = 0; // Ground at player foot level
         this.scene.add(mesh);
 
-        // Add base circle
-        var baseGeo = new THREE.CircleGeometry(groundRadius, 64);
+        // Add base plane (matches 25x25 floor)
+        var baseGeo = new THREE.PlaneGeometry(25, 25);
         var baseMat = new THREE.MeshStandardMaterial({
             color: 0x101010,
             roughness: 0.6,
@@ -158,6 +158,7 @@ AFRAME.registerComponent('environment-loader', {
         var baseMesh = new THREE.Mesh(baseGeo, baseMat);
         baseMesh.rotation.x = -Math.PI / 2;
         baseMesh.position.y = -0.5;
+        this.scene.add(baseMesh);
         this.scene.add(baseMesh);
     },
 
