@@ -49,8 +49,17 @@
     <script src="js/aframe-components/simple-controller-menu.js"></script>
     <script src="js/aframe-components/simple-vr-keyboard.js"></script>
     <!-- DIAGNOSTIC TEST COMPONENTS (Cache-busting) -->
-    <script src="js/aframe-components/test-controller-menu.js?v=20251211-1812"></script>
-    <script src="js/aframe-components/test-vr-keyboard.js?v=20251211-1812"></script>
+    <script src="js/aframe-components/test-controller-menu.js?v=20251211-1812"
+        onerror="console.error('FAILED TO LOAD: test-controller-menu.js')"></script>
+    <script src="js/aframe-components/test-vr-keyboard.js?v=20251211-1812"
+        onerror="console.error('FAILED TO LOAD: test-vr-keyboard.js')"></script>
+
+    <!-- Verification that HTML updated -->
+    <script>
+        console.log('===================================================');
+        console.log('HTML LOADED: Cache-busting version 20251211-1812');
+        console.log('===================================================');
+    </script>
 
     <script>
         // One-time initialization
