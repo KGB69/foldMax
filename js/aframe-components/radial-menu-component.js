@@ -736,20 +736,24 @@ AFRAME.registerComponent('radial-menu', {
     },
 
     showPDBInput: function () {
-        // Use VR Keyboard instead of prompt
-        console.log('[RadialMenu] Requesting VR Keyboard');
+        console.log('[RadialMenu] Opening simple keyboard');
 
         // Hide menu
         this.hide();
 
-        var self = this;
-        this.el.sceneEl.emit('vr-keyboard-open', {
-            callback: function (pdbId) {
+        // Call keyboard directly
+        var keyboard = document.querySelector('#simple-vr-keyboard');
+        if (keyboard && keyboard.components['simple-vr-keyboard']) {
+            var self = this;
+            keyboard.components['simple-vr-keyboard'].show(function (pdbId) {
+                console.log('[RadialMenu] Keyboard returned:', pdbId);
                 if (pdbId && pdbId.length > 0) {
                     self.loadPDB(pdbId);
                 }
-            }
-        });
+            });
+        } else {
+            console.error('[RadialMenu] Simple keyboard not found!');
+        }
     },
 
     loadPDB: function (pdbId) {
