@@ -737,16 +737,56 @@ AFRAME.registerComponent('radial-menu', {
 
     showPDBInput: function () {
         console.log('[RadialMenu] Opening TEST keyboard');
+        console.log('[RadialMenu] ========================================');
 
         // Hide menu
         this.hide();
 
-        // Call TEST keyboard directly (changed from simple-vr-keyboard)
+        // Try to find keyboard
         var keyboard = document.querySelector('#test-vr-keyboard');
-        console.log('[RadialMenu] Found keyboard:', keyboard ? 'YES' : 'NO');
+        console.log('[RadialMenu] document.querySelector result:', keyboard);
+
+        // If not found, CREATE IT NOW
+        if (!keyboard) {
+            console.warn('[RadialMenu] Keyboard not found! Creating it now...');
+            keyboard = document.createElement('a-entity');
+            keyboard.setAttribute('id', 'test-vr-keyboard');
+            keyboard.setAttribute('test-vr-keyboard', '');
+            keyboard.setAttribute('position', '0 1.5 -1');
+            keyboard.setAttribute('visible', 'true');
+
+            var scene = document.querySelector('a-scene');
+            if (scene) {
+                scene.appendChild(keyboard);
+                console.log('[RadialMenu] Keyboard created and added to scene');
+
+                // Wait a moment for component to initialize
+                setTimeout(function () {
+                    var self = this;
+                    if (keyboard.components['test-vr-keyboard']) {
+                        console.log('[RadialMenu] Component initialized, calling show()');
+                        keyboard.components['test-vr-keyboard'].show(function (pdbId) {
+                            console.log('[RadialMenu] Keyboard returned:', pdbId);
+                            if (pdbId && pdbId.length > 0) {
+                                self.loadPDB(pdbId);
+                            }
+                        });
+                    } else {
+                        console.error('[RadialMenu] Component STILL not initialized after waiting!');
+                    }
+                }.bind(this), 500);
+                return;
+            } else {
+                console.error('[RadialMenu] No scene found!');
+                return;
+            }
+        }
+
+        console.log('[RadialMenu] Found keyboard, checking for component...');
+        console.log('[RadialMenu] keyboard.components:', keyboard.components);
 
         if (keyboard && keyboard.components['test-vr-keyboard']) {
-            console.log('[RadialMenu] Keyboard component exists, calling show()');
+            console.log('[RadialMenu] Component exists, calling show()');
             var self = this;
             keyboard.components['test-vr-keyboard'].show(function (pdbId) {
                 console.log('[RadialMenu] Keyboard returned:', pdbId);
@@ -755,10 +795,9 @@ AFRAME.registerComponent('radial-menu', {
                 }
             });
         } else {
-            console.error('[RadialMenu] TEST keyboard not found or no component!');
-            console.log('[RadialMenu] Keyboard element:', keyboard);
+            console.error('[RadialMenu] Keyboard found but component missing!');
             if (keyboard) {
-                console.log('[RadialMenu] Components on keyboard:', Object.keys(keyboard.components || {}));
+                console.log('[RadialMenu] Available components:', Object.keys(keyboard.components || {}));
             }
         }
     },
