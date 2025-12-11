@@ -25,12 +25,44 @@ AFRAME.registerComponent('vr-console', {
         // Log initial message
         console.log('[VRConsole] VR Console Active - Logs will appear in VR');
         console.log('[VRConsole] Position: ' + JSON.stringify(this.data.position));
+
+        this.setupInput();
+    },
+
+    setupInput: function () {
+        var self = this;
+        // Keyboard X
+        document.addEventListener('keydown', function (e) {
+            if (e.code === 'KeyX' || e.key === 'x') self.toggle();
+        });
+
+        // VR Controller X
+        this.el.sceneEl.addEventListener('enter-vr', function () {
+            setTimeout(function () {
+                var leftHand = document.querySelector('#left-hand') || document.querySelector('[laser-controls="hand: left"]');
+                if (leftHand) {
+                    leftHand.addEventListener('xbuttondown', function () {
+                        self.toggle();
+                    });
+                    console.log('[VRConsole] X button bound to toggle');
+                }
+            }, 2000);
+        });
+    },
+
+    toggle: function () {
+        if (this.container) {
+            var visible = !this.container.getAttribute('visible');
+            this.container.setAttribute('visible', visible);
+            console.log('[VRConsole] Toggle visibility:', visible);
+        }
     },
 
     createTextDisplay: function () {
         // Create container entity
         var container = document.createElement('a-entity');
         container.setAttribute('position', this.data.position);
+        container.setAttribute('visible', false); // Default hidden
 
         // Create background panel
         var bg = document.createElement('a-plane');
