@@ -24,6 +24,9 @@ AFRAME.registerComponent('radial-menu', {
         this.currentInput = '';
         this.maxInputLength = 4;
 
+        // Calibration Mode
+        this.isCalibrationMode = false;
+
         // PDB keyboard input
         this.pdbInput = '';
 
@@ -94,7 +97,25 @@ AFRAME.registerComponent('radial-menu', {
             self.toggle();
         });
 
+        // A Button: Short Press = Cancel/Back, Long Press = Toggle Calibration
         rightController.addEventListener('abuttondown', function () {
+            self.aBtnLongPressed = false;
+            self.aBtnTimer = setTimeout(function () {
+                self.toggleCalibrationMode();
+                self.aBtnLongPressed = true;
+            }, 1000); // 1 second long press
+        });
+
+        rightController.addEventListener('abuttonup', function () {
+            clearTimeout(self.aBtnTimer);
+
+            if (self.aBtnLongPressed) {
+                // Long press action already handled
+                self.aBtnLongPressed = false;
+                return;
+            }
+
+            // Short Press Logic
             if (self.isOpen) {
                 if (self.isInputMode) {
                     console.log('[RadialMenu] A button - canceling input');
@@ -410,22 +431,24 @@ AFRAME.registerComponent('radial-menu', {
         ctx.textAlign = 'left';
         ctx.fillText('Menu', 80, 100);
 
-        // Calibration Controls (Top Right)
-        var calX = 750;
-        var calY = 60;
-        var calSize = 30;
-        var calPad = 5;
+        // Calibration Controls (Top Right) - Only if enabled
+        if (this.isCalibrationMode) {
+            var calX = 750;
+            var calY = 60;
+            var calSize = 30;
+            var calPad = 5;
 
-        ctx.textAlign = 'center';
-        ctx.font = '16px Arial';
-        ctx.fillStyle = 'rgba(255,255,255,0.5)';
-        ctx.fillText('Calibrate', calX + calSize + calPad / 2, calY - 10);
+            ctx.textAlign = 'center';
+            ctx.font = '16px Arial';
+            ctx.fillStyle = 'rgba(255,255,255,0.8)'; // Brighter when active
+            ctx.fillText('Calibrate', calX + calSize + calPad / 2, calY - 10);
 
-        // Arrows: Up/Down/Left/Right
-        this.drawCalibrationBtn(ctx, '↑', calX + calSize + calPad, calY, calSize, 'y', 0.01);
-        this.drawCalibrationBtn(ctx, '↓', calX + calSize + calPad, calY + calSize + calPad, calSize, 'y', -0.01);
-        this.drawCalibrationBtn(ctx, '←', calX, calY + calSize / 2 + calPad / 2, calSize, 'x', -0.01);
-        this.drawCalibrationBtn(ctx, '→', calX + (calSize + calPad) * 2, calY + calSize / 2 + calPad / 2, calSize, 'x', 0.01);
+            // Arrows: Up/Down/Left/Right
+            this.drawCalibrationBtn(ctx, '↑', calX + calSize + calPad, calY, calSize, 'y', 0.01);
+            this.drawCalibrationBtn(ctx, '↓', calX + calSize + calPad, calY + calSize + calPad, calSize, 'y', -0.01);
+            this.drawCalibrationBtn(ctx, '←', calX, calY + calSize / 2 + calPad / 2, calSize, 'x', -0.01);
+            this.drawCalibrationBtn(ctx, '→', calX + (calSize + calPad) * 2, calY + calSize / 2 + calPad / 2, calSize, 'x', 0.01);
+        }
 
         // Tabs - Centered BELOW title
         var tabY = 130;
@@ -1336,6 +1359,20 @@ AFRAME.registerComponent('radial-menu', {
         if (this.isOpen) {
             this.hide();
         } else {
+            this.show();
+        }
+    },
+
+    toggleCalibrationMode: function () {
+        this.isCalibrationMode = !this.isCalibrationMode;
+        console.log('[RadialMenu] Calibration Mode:', this.isCalibrationMode);
+
+        // Give visual feedback
+        if (this.isOpen) {
+            this.draw();
+        } else {
+            // If menu is closed, maybe show it? Or just log? 
+            // User likely wants to see it to calibrate.
             this.show();
         }
     },
