@@ -3,6 +3,8 @@
  * Interaction: Hover to Preview (Glow), Trigger to Pin, Grip to Clear.
  */
 
+console.log('[AnnotationRaycaster] Script loaded');
+
 AFRAME.registerComponent('annotation-raycaster', {
     dependencies: ['raycaster'],
 
