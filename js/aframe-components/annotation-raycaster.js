@@ -61,6 +61,7 @@ AFRAME.registerComponent('annotation-raycaster', {
         var atomData = this.getAtomData(object);
 
         if (atomData) {
+            console.log('[AnnotationSystem] Hit Atom:', atomData.name, atomData.resid);
             this.hoveredAtom = atomData;
             this.hoveredPoint = intersection.point;
 
