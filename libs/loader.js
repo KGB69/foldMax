@@ -19,7 +19,63 @@ PDB.loader = {
       w3m.api.switchRepModeMain(w3m.CARTOON);
       w3m.api.switchRepModeHet(w3m.LINE);
 
-      scope.renderGroups(PDB.pdbId);
+      PDB.GROUP_STRUCTURE_INDEX = [];
+      PDB.GROUP_MAIN_INDEX = [];
+      PDB.GROUP_HET_INDEX = [];
+
+      for (var chain in w3m.mol[PDB.pdbId].chain) {
+        var gindex = "chain_" + chain;
+        var first_atomid = PDB.tool.getFirstAtomIdByChain(chain);
+        PDB.GROUP[gindex] = new THREE.Group();
+        PDB.GROUP[gindex].name = chain;
+        PDB.GROUP[gindex].userData["group"] = gindex;
+        if (PDB.structureSizeLevel > 1) {
+          PDB.GROUP[gindex].userData["type"] = 'normal';
+        }
+
+        PDB.GROUP[gindex].userData["presentAtom"] = PDB.tool.getMainAtom(PDB.pdbId, first_atomid);
+        if (!PDB.pptShow) {
+          (PDB.scene || scene).add(PDB.GROUP[gindex]);
+        }
+        PDB.GROUP_MAIN_INDEX.push(gindex);
+        PDB.GROUP_STRUCTURE_INDEX.push(gindex);
+
+        if (PDB.structureSizeLevel > 1) {
+          var gindex_low = "chain_" + chain + "_low";
+          //var first_atomid = PDB.tool.getFirstAtomIdByChain(chain);
+          PDB.GROUP[gindex_low] = new THREE.Group();
+          PDB.GROUP[gindex_low].name = chain;
+          PDB.GROUP[gindex_low].userData["group"] = gindex_low;
+          PDB.GROUP[gindex_low].userData["type"] = 'low';
+          PDB.GROUP[gindex_low].userData["presentAtom"] = PDB.tool.getMainAtom(PDB.pdbId, first_atomid);
+          if (!PDB.pptShow) {
+            (PDB.scene || scene).add(PDB.GROUP[gindex_low]);
+          }
+          PDB.GROUP_MAIN_INDEX.push(gindex_low);
+          PDB.GROUP_STRUCTURE_INDEX.push(gindex_low);
+        }
+      }
+
+      //Structure
+      PDB.GROUP_MAIN_INDEX.push(PDB.GROUP_MAIN);
+      PDB.GROUP_HET_INDEX.push(PDB.GROUP_HET);
+      PDB.GROUP_HET_INDEX.push(PDB.GROUP_WATER);
+      PDB.GROUP_HET_INDEX.push(PDB.GROUP_AXIS);
+      PDB.GROUP_SURFACE_INDEX.push(PDB.GROUP_SURFACE);
+      PDB.GROUP_MUTATION_INDEX.push(PDB.GROUP_MUTATION);
+      PDB.GROUP_STRUCTURE_INDEX.push(PDB.GROUP_MAIN);
+      // PDB.GROUP_STRUCTURE_INDEX.push(PDB.GROUP_AXIS);
+      PDB.GROUP_STRUCTURE_INDEX.push(PDB.GROUP_BOX_HELPER);
+      PDB.GROUP_STRUCTURE_INDEX.push(PDB.GROUP_DOCKING);
+      PDB.GROUP_STRUCTURE_INDEX.push(PDB.GROUP_WATER);
+      PDB.GROUP_STRUCTURE_INDEX.push(PDB.GROUP_HET);
+      PDB.GROUP_STRUCTURE_INDEX.push(PDB.GROUP_INFO);
+      PDB.GROUP_STRUCTURE_INDEX.push(PDB.GROUP_SURFACE);
+      PDB.GROUP_STRUCTURE_INDEX.push(PDB.GROUP_MUTATION);
+      PDB.GROUP_STRUCTURE_INDEX.push(PDB.GROUP_DRUG);
+      PDB.GROUP_STRUCTURE_INDEX.push(PDB.GROUP_SLICE);
+      PDB.GROUP_STRUCTURE_INDEX.push(PDB.GROUP_BOND);
+      PDB.GROUP_STRUCTURE_INDEX.push(PDB.GROUP_MAP);
 
       // Reinitialize procedural environment (sky, ground, etc.) after protein load
       if (typeof window.loadEnvironmentModel === 'function') {
@@ -31,75 +87,6 @@ PDB.loader = {
       callBack();
       console.log('[PDB.loader] Callback executed successfully');
     });
-  },
-  renderGroups: function (pdbId) {
-    PDB.GROUP_STRUCTURE_INDEX = [];
-    PDB.GROUP_MAIN_INDEX = [];
-    PDB.GROUP_HET_INDEX = [];
-
-    // Check if w3m.mol[pdbId] exists before iterating
-    if (!w3m.mol[pdbId] || !w3m.mol[pdbId].chain) {
-      console.error("renderGroups: No chain data for " + pdbId);
-      return;
-    }
-
-    for (var chain in w3m.mol[pdbId].chain) {
-      var gindex = "chain_" + chain;
-      var first_atomid = PDB.tool.getFirstAtomIdByChain(chain);
-      PDB.GROUP[gindex] = new THREE.Group();
-      PDB.GROUP[gindex].name = chain;
-      PDB.GROUP[gindex].userData["group"] = gindex;
-      if (PDB.structureSizeLevel > 1) {
-        PDB.GROUP[gindex].userData["type"] = 'normal';
-      }
-
-      try {
-        PDB.GROUP[gindex].userData["presentAtom"] = PDB.tool.getMainAtom(pdbId, first_atomid);
-      } catch (e) { console.warn("Could not get main atom", e); }
-
-      if (!PDB.pptShow) {
-        (PDB.scene || scene).add(PDB.GROUP[gindex]);
-      }
-      PDB.GROUP_MAIN_INDEX.push(gindex);
-      PDB.GROUP_STRUCTURE_INDEX.push(gindex);
-
-      if (PDB.structureSizeLevel > 1) {
-        var gindex_low = "chain_" + chain + "_low";
-        PDB.GROUP[gindex_low] = new THREE.Group();
-        PDB.GROUP[gindex_low].name = chain;
-        PDB.GROUP[gindex_low].userData["group"] = gindex_low;
-        PDB.GROUP[gindex_low].userData["type"] = 'low';
-        try {
-          PDB.GROUP[gindex_low].userData["presentAtom"] = PDB.tool.getMainAtom(pdbId, first_atomid);
-        } catch (e) { }
-
-        if (!PDB.pptShow) {
-          (PDB.scene || scene).add(PDB.GROUP[gindex_low]);
-        }
-        PDB.GROUP_MAIN_INDEX.push(gindex_low);
-        PDB.GROUP_STRUCTURE_INDEX.push(gindex_low);
-      }
-    }
-
-    //Structure
-    PDB.GROUP_MAIN_INDEX.push(PDB.GROUP_MAIN);
-    PDB.GROUP_HET_INDEX.push(PDB.GROUP_HET);
-    PDB.GROUP_HET_INDEX.push(PDB.GROUP_WATER);
-    PDB.GROUP_HET_INDEX.push(PDB.GROUP_AXIS);
-    PDB.GROUP_SURFACE_INDEX.push(PDB.GROUP_SURFACE);
-    PDB.GROUP_MUTATION_INDEX.push(PDB.GROUP_MUTATION);
-    PDB.GROUP_STRUCTURE_INDEX.push(PDB.GROUP_MAIN);
-    PDB.GROUP_STRUCTURE_INDEX.push(PDB.GROUP_BOX_HELPER);
-    PDB.GROUP_STRUCTURE_INDEX.push(PDB.GROUP_DOCKING);
-    PDB.GROUP_STRUCTURE_INDEX.push(PDB.GROUP_WATER);
-    PDB.GROUP_STRUCTURE_INDEX.push(PDB.GROUP_HET);
-    PDB.GROUP_STRUCTURE_INDEX.push(PDB.GROUP_INFO);
-    PDB.GROUP_STRUCTURE_INDEX.push(PDB.GROUP_SURFACE);
-    PDB.GROUP_STRUCTURE_INDEX.push(PDB.GROUP_MUTATION);
-    PDB.GROUP_STRUCTURE_INDEX.push(PDB.GROUP_DRUG);
-    PDB.GROUP_STRUCTURE_INDEX.push(PDB.GROUP_SLICE);
-    PDB.GROUP_STRUCTURE_INDEX.push(PDB.GROUP_BOND);
-    PDB.GROUP_STRUCTURE_INDEX.push(PDB.GROUP_MAP);
   },
   loadFromDisk: function (file, callBack) {
     var scope = this;
