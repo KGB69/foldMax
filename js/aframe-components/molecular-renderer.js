@@ -47,10 +47,14 @@ AFRAME.registerComponent('molecular-renderer', {
 
         // Step 0: Use Official PDB Library Cleanup (Critical for resetting data buffers)
         if (typeof PDB !== 'undefined') {
+            // NOTE: PDB.controller.clear causes "undefined (reading refreshGeometryByMode)" on VR device.
+            // Disabling it. PDB.loader.clear() + manual cleanup should be sufficient.
+            /* 
             if (PDB.controller && typeof PDB.controller.clear === 'function') {
                 console.log('[MolecularRenderer] Calling PDB.controller.clear(2, -1)');
                 try { PDB.controller.clear(2, -1); } catch (e) { console.warn('PDB.controller.clear failed:', e); }
             }
+            */
             if (PDB.loader && typeof PDB.loader.clear === 'function') {
                 console.log('[MolecularRenderer] Calling PDB.loader.clear()');
                 try { PDB.loader.clear(); } catch (e) { console.warn('PDB.loader.clear failed:', e); }
