@@ -1,6 +1,6 @@
 /**
  * Annotation System for VRmol
- * Interaction: Hover to Preview, Trigger to Pin, Grip to Clear.
+ * Interaction: Hover to Preview (Glow), Trigger to Pin, Grip to Clear.
  */
 
 AFRAME.registerComponent('annotation-raycaster', {
@@ -23,14 +23,16 @@ AFRAME.registerComponent('annotation-raycaster', {
         // State
         this.hoveredAtom = null;
         this.hoveredPoint = null;
+        this.hoveredMesh = null; // Track mesh for glow effect
+        this.originalEmissive = new THREE.Color(); // Store original color
 
         // Create Preview Entity (Hidden by default)
         this.previewEl = document.createElement('a-entity');
-        this.previewEl.setAttribute('annotation-label', { text: '', targetPos: { x: 0, y: 0, z: 0 } });
+        this.previewEl.setAttribute('annotation-label', { text: '', targetPos: { x: 0, y: 0, z: 0 }, isPreview: true });
         this.previewEl.object3D.visible = false;
         this.el.sceneEl.appendChild(this.previewEl);
 
-        console.log('[AnnotationSystem] Init: Hover->Preview, Trigger->Pin');
+        console.log('[AnnotationSystem] Init: Hover->Glow->Preview, Trigger->Pin');
     },
 
     remove: function () {
@@ -42,12 +44,15 @@ AFRAME.registerComponent('annotation-raycaster', {
         if (this.previewEl && this.previewEl.parentNode) {
             this.previewEl.parentNode.removeChild(this.previewEl);
         }
+
+        // Clean up glow if active
+        if (this.hoveredMesh) {
+            this.removeGlow(this.hoveredMesh);
+        }
     },
 
     onIntersection: function (evt) {
-        // evt.detail.els is an array of intersected entities
         var raycaster = this.el.components.raycaster;
-        // intersectObjects is internal, getIntersection is safer if available
         var intersection = raycaster.getIntersection(evt.detail.els[0]);
 
         if (!intersection) return;
@@ -59,37 +64,97 @@ AFRAME.registerComponent('annotation-raycaster', {
             this.hoveredAtom = atomData;
             this.hoveredPoint = intersection.point;
 
-            // Show Preview
+            // 1. Glow Effect
+            if (this.hoveredMesh !== object) {
+                // If switching objects, clear previous first
+                if (this.hoveredMesh) this.removeGlow(this.hoveredMesh);
+
+                this.hoveredMesh = object;
+                this.applyGlow(this.hoveredMesh);
+            }
+
+            // 2. Show Preview
             this.previewEl.setAttribute('annotation-label', {
                 text: this.formatLabelText(atomData),
-                targetPos: this.hoveredPoint
+                targetPos: this.hoveredPoint,
+                isPreview: true
             });
             this.previewEl.object3D.visible = true;
         }
     },
 
     onIntersectionCleared: function () {
+        // Clear State
+        if (this.hoveredMesh) {
+            this.removeGlow(this.hoveredMesh);
+            this.hoveredMesh = null;
+        }
         this.hoveredAtom = null;
         this.hoveredPoint = null;
+
         // Hide Preview
         this.previewEl.object3D.visible = false;
     },
 
     onTriggerDown: function () {
-        // Pin the current preview if valid
         if (this.hoveredAtom && this.hoveredPoint) {
-            this.spawnPermanentLabel(this.hoveredPoint, this.hoveredAtom);
+            console.log('[AnnotationSystem] Pinning:', this.hoveredAtom.name);
+            // Delegate to Manager
+            this.el.sceneEl.emit('pin-annotation', {
+                atomData: this.hoveredAtom,
+                position: this.hoveredPoint
+            });
         }
     },
 
     onGripDown: function () {
-        console.log('[AnnotationSystem] Clearing all pinned annotations');
-        var labels = document.querySelectorAll('.pinned-annotation');
-        for (var i = 0; i < labels.length; i++) {
-            labels[i].parentNode.removeChild(labels[i]);
-        }
+        console.log('[AnnotationSystem] Requesting Clear All');
+        this.el.sceneEl.emit('clear-annotations');
     },
 
+    // --- GLOW LOGIC ---
+    applyGlow: function (mesh) {
+        if (!mesh.material) return;
+
+        // Handle array materials (rare for atoms but possible) or single
+        var mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+
+        mats.forEach(mat => {
+            // Check if we already saved (avoid double save)
+            if (!mat.userData.originalEmissive) {
+                mat.userData.originalEmissive = mat.emissive ? mat.emissive.clone() : new THREE.Color(0, 0, 0);
+            }
+
+            // Set Glow (Emissive Cyan/Yellow)
+            if (mat.emissive) {
+                mat.emissive.setHex(0x444444); // Slight whitish glow
+                // Increase intensity if possible, or use standard material properties
+            } else {
+                // Fallback for materials without emissive?
+                // Most PDB materials are MeshPhong or MeshLambert, so they have emissive.
+            }
+            mat.needsUpdate = true;
+        });
+    },
+
+    removeGlow: function (mesh) {
+        if (!mesh || !mesh.material) return;
+
+        var mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+
+        mats.forEach(mat => {
+            if (mat.userData.originalEmissive) {
+                mat.emissive.copy(mat.userData.originalEmissive);
+                // Clean up userData?
+                // delete mat.userData.originalEmissive; 
+            } else {
+                mat.emissive.setHex(0x000000);
+            }
+            mat.needsUpdate = true;
+        });
+    },
+
+    // --- UTILS ---
     getAtomData: function (object) {
         var curr = object;
         while (curr) {
@@ -103,73 +168,11 @@ AFRAME.registerComponent('annotation-raycaster', {
         return null;
     },
 
-    spawnPermanentLabel: function (position, atom) {
-        // Create new entity
-        var labelEl = document.createElement('a-entity');
-        labelEl.classList.add('pinned-annotation'); // Mark for clearing
-        labelEl.setAttribute('annotation-label', {
-            text: this.formatLabelText(atom),
-            targetPos: position
-        });
-        this.el.sceneEl.appendChild(labelEl);
-        console.log('[AnnotationSystem] Pinned label for:', atom.name);
-    },
-
     formatLabelText: function (atom) {
         var res = atom.resname || '???';
         var resid = atom.resid || '';
         var name = atom.name || '';
         var chain = atom.chainname || '';
         return `${res} ${resid}\n${name} Chain:${chain}`;
-    }
-});
-
-// Reusable Label Component
-AFRAME.registerComponent('annotation-label', {
-    schema: {
-        text: { type: 'string', default: '' },
-        targetPos: { type: 'vec3' }
-    },
-
-    init: function () {
-        // Text
-        this.textEl = document.createElement('a-entity');
-        this.textEl.setAttribute('text', {
-            align: 'center', color: '#FFFFFF', width: 1.5,
-            shader: 'msdf',
-            font: 'https://raw.githubusercontent.com/etiennepinchon/aframe-fonts/master/fonts/roboto/Roboto-Bold.json'
-        });
-
-        // Background
-        var bgEl = document.createElement('a-entity');
-        bgEl.setAttribute('geometry', { primitive: 'plane', width: 'auto', height: 'auto' });
-        bgEl.setAttribute('material', { color: '#000000', opacity: 0.6, transparent: true });
-        bgEl.setAttribute('scale', '0.4 0.15 1');
-        bgEl.setAttribute('position', '0 0 -0.01');
-        this.textEl.appendChild(bgEl);
-
-        // Line
-        this.lineEl = document.createElement('a-entity');
-
-        this.el.appendChild(this.textEl);
-        this.el.appendChild(this.lineEl);
-
-        this.el.setAttribute('look-at', '[camera]');
-    },
-
-    update: function () {
-        // Update Text
-        this.textEl.setAttribute('text', 'value', this.data.text);
-
-        // Update Position
-        var pos = this.data.targetPos;
-        this.el.object3D.position.set(pos.x, pos.y + 0.2, pos.z);
-
-        // Update Line
-        this.lineEl.setAttribute('line', {
-            start: '0 0 0',
-            end: '0 -0.2 0',
-            color: '#FFFF00'
-        });
     }
 });
