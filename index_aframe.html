@@ -81,15 +81,16 @@
         <a-entity environment-loader="timeOfDay: 0.35"></a-entity>
 
         <!-- Molecule Container (Target for controls) -->
-        <a-entity id="molecule-container" position="0 1.5 -5" scale="0.1 0.1 0.1" molecular-renderer="pdbId: 1cbs"
-            axis-transform-controls="hand: right">
+        <a-entity id="molecule-container" class="molecular-structure" position="0 1.5 -5" scale="0.1 0.1 0.1"
+            molecular-renderer="pdbId: 1cbs" axis-transform-controls="hand: right">
         </a-entity>
 
         <!-- VR Controls -->
         <a-entity id="rig" position="0 0 0" vr-locomotion="speed: 3; fly: true" movement-debug>
             <a-entity id="camera" camera position="0 1.6 0" look-controls="pointerLockEnabled: true"></a-entity>
             <a-entity id="left-hand" oculus-touch-controls="hand: left" laser-controls="hand: left"
-                raycaster="objects: .clickable; far: 5"></a-entity>
+                raycaster="objects: .clickable, .molecular-structure, #molecule-container; far: 50; interval: 100"
+                annotation-raycaster></a-entity>
             <a-entity id="right-hand" oculus-touch-controls="hand: right" laser-controls="hand: right"
                 raycaster="objects: .clickable; far: 5" test-controller-menu></a-entity>
         </a-entity>
