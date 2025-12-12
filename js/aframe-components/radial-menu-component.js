@@ -103,7 +103,7 @@ AFRAME.registerComponent('radial-menu', {
             self.aBtnTimer = setTimeout(function () {
                 self.toggleCalibrationMode();
                 self.aBtnLongPressed = true;
-            }, 1000); // 1 second long press
+            }, 600); // 600ms long press is more responsive
         });
 
         rightController.addEventListener('abuttonup', function () {
@@ -336,35 +336,13 @@ AFRAME.registerComponent('radial-menu', {
             this.drawSelection(ctx);
 
             // DEBUG: Draw hitboxes to verify alignment
-            this.drawHitBoxes(ctx);
+            // this.drawHitBoxes(ctx);
         }
 
         this.texture.needsUpdate = true;
     },
 
-    // DEBUG: Visualizes where the click buttons actually are
-    drawHitBoxes: function (ctx) {
-        ctx.lineWidth = 2;
-        ctx.strokeStyle = 'rgba(255, 0, 0, 0.8)';
-
-        for (var i = 0; i < this.buttons.length; i++) {
-            var b = this.buttons[i];
-
-            // Hover highlight
-            if (this.hoveredButtonId === b.id) {
-                ctx.fillStyle = 'rgba(255, 255, 0, 0.3)';
-                ctx.fillRect(b.x, b.y, b.w, b.h);
-            }
-
-            // Hitbox outline
-            ctx.strokeRect(b.x, b.y, b.w, b.h);
-
-            ctx.fillStyle = 'rgba(255, 0, 0, 0.2)';
-            ctx.font = '10px Arial';
-            ctx.textAlign = 'left';
-            ctx.fillText(b.id, b.x + 5, b.y + 15);
-        }
-    },
+    // Debug function removed
 
     drawLoadingScreen: function (ctx) {
         var w = this.canvas.width;
