@@ -9,7 +9,7 @@ AFRAME.registerComponent('molecular-renderer', {
     },
 
     init: function () {
-        console.log('[MolecularRenderer] Initializing...');
+        console.log('[MolecularRenderer] UPDATED: Initializing...');
 
         // Hijack the global scene/parent for PDB loader
         PDB.scene = this.el.object3D;

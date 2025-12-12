@@ -41,9 +41,13 @@
     <script src="js/aframe-components/movement-debug.js"></script>
     <script src="js/aframe-components/vr-debug-panel.js"></script>
     <script src="js/aframe-components/vr-console.js"></script>
-    <script src="js/aframe-components/annotation-manager.js?v=debug2"></script> <!-- Core Logic -->
-    <script src="js/aframe-components/annotation-label.js?v=debug2"></script> <!-- UI Component -->
-    <script src="js/aframe-components/annotation-raycaster.js?v=debug2"></script> <!-- Interaction -->
+    <script src="js/aframe-components/annotation-manager.js?v=debug3" onload="console.log('[Loader] Manager Loaded')"
+        onerror="console.error('[Loader] Manager FAILED to load')"></script>
+    <script src="js/aframe-components/annotation-label.js?v=debug3" onload="console.log('[Loader] Label Loaded')"
+        onerror="console.error('[Loader] Label FAILED to load')"></script>
+    <script src="js/aframe-components/annotation-raycaster.js?v=debug3"
+        onload="console.log('[Loader] Raycaster Loaded')"
+        onerror="console.error('[Loader] Raycaster FAILED to load')"></script>
 
     <script src="js/aframe-components/controller-radial-menu.js"></script>
     <script src="js/aframe-components/axis-transform-controls.js"></script>
