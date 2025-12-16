@@ -112,7 +112,7 @@ AFRAME.registerSystem('annotation-manager', {
 /**
  * Component: annotation-label
  * Renders the text and line.
- * UPDATED: Fixes clipping and improves visual container.
+ * UPDATED: Cleaner container with border and dot.
  */
 AFRAME.registerComponent('annotation-label', {
     schema: {
@@ -122,87 +122,159 @@ AFRAME.registerComponent('annotation-label', {
     },
 
     init: function () {
-        this.offset = new THREE.Vector3(0, 0.2, 0); // 20cm above atom
+        this.offset = new THREE.Vector3(0, 0.25, 0); // 25cm above atom
 
-        // Container (Billboarded)
+        // Main Container (Billboarded)
         this.containerInfo = document.createElement('a-entity');
         this.containerInfo.setAttribute('look-at', '[camera]'); // Always face user
         this.el.appendChild(this.containerInfo);
 
-        // Background Plane (The "Neat Container")
+        // 1. Background Panel (Dark with Border)
         this.bgEl = document.createElement('a-entity');
-        this.bgEl.setAttribute('geometry', { primitive: 'plane', width: 'auto', height: 0.15 });
+        this.bgEl.setAttribute('geometry', { primitive: 'plane', width: 'auto', height: 0.12 });
         this.bgEl.setAttribute('material', {
-            color: '#000000',
-            opacity: 0.8,
+            color: '#111111',
+            opacity: 0.9,
             transparent: true,
-            depthTest: false, // ALWAYS ON TOP
-            shader: 'flat'
+            shader: 'flat',
+            depthTest: false
         });
-        // Important: Render Order for "Always on Top" effect
         this.bgEl.object3D.renderOrder = 9999;
         this.containerInfo.appendChild(this.bgEl);
 
-        // Text
+        // Border (slightly larger plane behind, or lines) -> Using a slightly larger plane for border effect
+        this.borderEl = document.createElement('a-entity');
+        this.borderEl.setAttribute('geometry', { primitive: 'plane', width: 'auto', height: 0.13 });
+        this.borderEl.setAttribute('material', { color: '#444444', shader: 'flat', depthTest: false });
+        this.borderEl.object3D.renderOrder = 9998;
+        this.borderEl.setAttribute('position', '0 0 -0.001');
+        this.containerInfo.appendChild(this.borderEl);
+
+        // 2. Text
         this.textEl = document.createElement('a-entity');
         this.textEl.setAttribute('text', {
             value: this.data.text,
             align: 'center',
             color: '#FFFFFF',
-            width: 1.5,
-            wrapCount: 20
+            width: 1.2, // Slightly wider for better spacing
+            wrapCount: 22,
+            baseline: 'center',
+            anchor: 'center'
         });
-        // Disable depth test for text too
-        // We do this via a custom component or direct object access after load, 
-        // but for <a-text>, sticking to standard might be safer. 
-        // A-Frame text uses an SDF shader that usually handles depth well, 
-        // but we can try to force it via renderOrder.
-        this.textEl.object3D.renderOrder = 10000; // Above background
+        this.textEl.object3D.renderOrder = 10000;
         this.containerInfo.appendChild(this.textEl);
 
-        // Connector Line
+        // 3. Connector Line
         this.lineEl = document.createElement('a-entity');
-        // We'll update line geometry in tick/update
         this.el.appendChild(this.lineEl);
+
+        // 4. Anchor Dot (Visual anchor at the atom)
+        this.dotEl = document.createElement('a-entity');
+        this.dotEl.setAttribute('geometry', { primitive: 'sphere', radius: 0.008 });
+        this.dotEl.setAttribute('material', { color: '#00FFFF', shader: 'flat', depthTest: false });
+        this.dotEl.object3D.renderOrder = 10000;
+        this.el.appendChild(this.dotEl);
     },
 
     update: function () {
         this.textEl.setAttribute('text', 'value', this.data.text);
 
-        // Resize background based on text length (approximate)
+        // Dynamic Sizing
         var len = this.data.text.length;
-        var width = Math.max(0.3, len * 0.03); // Auto-width
-        this.bgEl.setAttribute('geometry', { width: width, height: 0.15 });
+        // Estimate width: 0.05 per char roughly + padding
+        var width = Math.max(0.2, len * 0.025) + 0.05;
+
+        this.bgEl.setAttribute('geometry', { width: width, height: 0.12 });
+        this.borderEl.setAttribute('geometry', { width: width + 0.01, height: 0.13 });
 
         var pos = this.data.targetPos;
-        this.el.object3D.position.set(pos.x, pos.y, pos.z).add(this.offset);
+        // Position the whole label entity at the target first? No, we set position to target
+        // Then move the container UP by offset.
+        this.el.object3D.position.set(pos.x, pos.y, pos.z);
+        this.containerInfo.object3D.position.copy(this.offset);
 
-        var lineColor = this.data.isPreview ? '#00FFFF' : '#FFFF00';
+        var color = this.data.isPreview ? '#00FFFF' : '#FFFF00';
+        this.dotEl.setAttribute('material', 'color', color);
+        // this.borderEl.setAttribute('material', 'color', this.data.isPreview ? '#008888' : '#888800');
 
-        // Update Line
+        // Line from offset to origin (0,0,0 is where the dot is)
         this.lineEl.setAttribute('line', {
-            start: '0 0 0',
-            end: `0 ${-this.offset.y} 0`,
-            color: lineColor,
+            start: { x: 0, y: this.offset.y - 0.06, z: 0 }, // Bottom of box
+            end: { x: 0, y: 0, z: 0 },
+            color: color,
             opacity: 0.8
         });
-        // Line also needs to see through geometry?
-        // Usually lines are thin enough to not matter, but let's try
-        // note: 'line' component creates an object, we can't easily access its material here immediately.
     },
 
     tick: function () {
-        // Ensure depthTest is off for the text mesh if it exists
+        // Enforce depthTest false on children meshes if loaded
         var mesh = this.textEl.getObject3D('mesh');
-        if (mesh && mesh.material) {
-            mesh.material.depthTest = false;
-            mesh.material.transparent = true;
+        if (mesh && mesh.material) mesh.material.depthTest = false;
+    }
+});
+
+// =========================================================================================
+// 3. WRIST WATCH / MODE PANEL (COMPONENT)
+// =========================================================================================
+AFRAME.registerComponent('annotation-mode-panel', {
+    init: function () {
+        // Container attached to controller
+        this.panel = document.createElement('a-entity');
+        // Position: On top of the controller/wrist
+        // Adjust these coords for Quest layout
+        this.panel.setAttribute('position', '0 0.05 0.05');
+        this.panel.setAttribute('rotation', '-45 0 0'); // Tilted towards user
+
+        // Background
+        var bg = document.createElement('a-entity');
+        bg.setAttribute('geometry', { primitive: 'plane', width: 0.2, height: 0.08 });
+        bg.setAttribute('material', { color: '#222', opacity: 0.8, shader: 'flat' });
+        this.panel.appendChild(bg);
+
+        this.el.appendChild(this.panel);
+
+        // Mode Labels
+        this.labels = {};
+        var modes = ['ATOM', 'RESIDUE', 'CHAIN'];
+        var xOffset = -0.06;
+
+        modes.forEach((m, i) => {
+            var label = document.createElement('a-text');
+            label.setAttribute('value', m);
+            label.setAttribute('scale', '0.2 0.2 0.2');
+            label.setAttribute('color', '#888'); // Dim default
+            label.setAttribute('align', 'center');
+            label.setAttribute('position', `${xOffset + (i * 0.06)} 0 0.01`);
+            this.panel.appendChild(label);
+            this.labels[m] = label;
+        });
+
+        // Header/Title
+        var title = document.createElement('a-text');
+        title.setAttribute('value', 'ANNOTATION MODE');
+        title.setAttribute('scale', '0.15 0.15 0.15');
+        title.setAttribute('color', '#CCC');
+        title.setAttribute('align', 'center');
+        title.setAttribute('position', '0 0.025 0.01');
+        this.panel.appendChild(title);
+    },
+
+    setMode: function (mode) {
+        var modeUpper = mode.toUpperCase();
+        for (var m in this.labels) {
+            if (m === modeUpper) {
+                this.labels[m].setAttribute('color', '#00FF00'); // Active Green
+                this.labels[m].setAttribute('scale', '0.25 0.25 0.25'); // Pop
+            } else {
+                this.labels[m].setAttribute('color', '#555'); // Dim
+                this.labels[m].setAttribute('scale', '0.2 0.2 0.2');
+            }
         }
     }
 });
 
 // =========================================================================================
-// 3. ANNOTATION RAYCASTER (COMPONENT)
+// 4. ANNOTATION RAYCASTER (COMPONENT)
 // =========================================================================================
 /**
  * Component: annotation-raycaster
@@ -227,6 +299,9 @@ AFRAME.registerComponent('annotation-raycaster', {
         this.el.addEventListener('raycaster-intersection', this.onIntersection);
         this.el.addEventListener('raycaster-intersection-cleared', this.onIntersectionCleared);
 
+        // Add Wrist Panel
+        this.el.setAttribute('annotation-mode-panel', '');
+
         this.hoveredAtom = null;
         this.hoveredPoint = null;
         this.hoveredMesh = null;
@@ -235,20 +310,18 @@ AFRAME.registerComponent('annotation-raycaster', {
         this.currentModeIndex = 0; // Start at 'atom'
         this.currentMode = this.modes[0];
 
+        // Init Panel
+        setTimeout(() => {
+            if (this.el.components['annotation-mode-panel']) {
+                this.el.components['annotation-mode-panel'].setMode(this.currentMode);
+            }
+        }, 500);
+
         // Create Preview Entity
         this.previewEl = document.createElement('a-entity');
         this.previewEl.setAttribute('annotation-label', { text: '', targetPos: { x: 0, y: 0, z: 0 }, isPreview: true });
         this.previewEl.object3D.visible = false;
         this.el.sceneEl.appendChild(this.previewEl);
-
-        // Mode Toast (Simple Text to show current mode)
-        this.modeTextEl = document.createElement('a-text');
-        this.modeTextEl.setAttribute('value', 'Mode: ATOM');
-        this.modeTextEl.setAttribute('position', '0 0.1 -0.1'); // Slightly above controller
-        this.modeTextEl.setAttribute('scale', '0.5 0.5 0.5');
-        this.modeTextEl.setAttribute('align', 'center');
-        this.modeTextEl.setAttribute('color', 'yellow');
-        this.el.appendChild(this.modeTextEl);
     },
 
     remove: function () {
@@ -259,7 +332,6 @@ AFRAME.registerComponent('annotation-raycaster', {
         this.el.removeEventListener('raycaster-intersection-cleared', this.onIntersectionCleared);
         if (this.previewEl && this.previewEl.parentNode) this.previewEl.parentNode.removeChild(this.previewEl);
         if (this.hoveredMesh) this.removeGlow(this.hoveredMesh);
-        if (this.modeTextEl && this.modeTextEl.parentNode) this.modeTextEl.parentNode.removeChild(this.modeTextEl);
     },
 
     onYButtonDown: function () {
@@ -267,8 +339,10 @@ AFRAME.registerComponent('annotation-raycaster', {
         this.currentModeIndex = (this.currentModeIndex + 1) % this.modes.length;
         this.currentMode = this.modes[this.currentModeIndex];
 
-        // Update UI
-        this.modeTextEl.setAttribute('value', 'Mode: ' + this.currentMode.toUpperCase());
+        // Update Panel
+        if (this.el.components['annotation-mode-panel']) {
+            this.el.components['annotation-mode-panel'].setMode(this.currentMode);
+        }
         console.log('[AnnotationSystem] Switched to mode:', this.currentMode);
 
         // Force refresh
@@ -390,6 +464,6 @@ AFRAME.registerComponent('annotation-raycaster', {
     formatLabelText: function (data) {
         if (this.currentMode === 'chain') return `Chain ${data.chainname}`;
         if (this.currentMode === 'residue') return `Res ${data.resname} ${data.resid}`;
-        return `Atom: ${data.name} #${data.id}\n${data.resname} ${data.resid}`;
+        return `Atom: ${data.id}\n${data.resname} ${data.resid}\nChain ${data.chainname}`;
     }
 });
