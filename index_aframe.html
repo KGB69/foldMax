@@ -77,7 +77,19 @@
 </head>
 
 <body>
-    <a-scene background="color: #000">
+    <!-- 
+        RENDERER SETTINGS FOR QUEST 3 PERFORMANCE:
+        - renderer: high-performance GPU, reduced antialiasing for VR
+        - webxr: foveated rendering, high refresh rate
+    -->
+    <a-scene background="color: #000" renderer="antialias: false; 
+                  colorManagement: true; 
+                  highRefreshRate: true;
+                  foveationLevel: 2;
+                  physicallyCorrectLights: false;
+                  logarithmicDepthBuffer: false" webxr="requiredFeatures: local-floor;
+               optionalFeatures: bounded-floor, hand-tracking;
+               referenceSpaceType: local-floor">
         <!-- Procedural Environment -->
         <a-entity environment-loader="timeOfDay: 0.35"></a-entity>
 
