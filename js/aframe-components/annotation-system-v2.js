@@ -180,26 +180,36 @@ AFRAME.registerComponent('annotation-label', {
         this.textEl.setAttribute('text', 'value', this.data.text);
 
         // Dynamic Sizing
-        var len = this.data.text.length;
-        // Estimate width: 0.05 per char roughly + padding
-        var width = Math.max(0.2, len * 0.025) + 0.05;
+        var lines = this.data.text.split('\n');
+        var lineCount = lines.length;
+        var maxLen = 0;
+        lines.forEach(l => { maxLen = Math.max(maxLen, l.length); });
 
-        this.bgEl.setAttribute('geometry', { width: width, height: 0.12 });
-        this.borderEl.setAttribute('geometry', { width: width + 0.01, height: 0.13 });
+        // Estimate width: 0.05 per char roughly + padding
+        // Reduced multiplier slightly to fit tighter
+        var width = Math.max(0.2, maxLen * 0.022) + 0.08;
+        var height = (lineCount * 0.06) + 0.04; // 0.06 per line + padding
+
+        this.bgEl.setAttribute('geometry', { width: width, height: height });
+        this.borderEl.setAttribute('geometry', { width: width + 0.01, height: height + 0.01 });
+
+        // Center text in box
+        // A-Frame text is anchored center, so just placing bg at 0,0 is fine if text is at 0,0
+        // But we want the connector line to come from the BOTTOM of the box.
 
         var pos = this.data.targetPos;
-        // Position the whole label entity at the target first? No, we set position to target
-        // Then move the container UP by offset.
         this.el.object3D.position.set(pos.x, pos.y, pos.z);
         this.containerInfo.object3D.position.copy(this.offset);
 
         var color = this.data.isPreview ? '#00FFFF' : '#FFFF00';
         this.dotEl.setAttribute('material', 'color', color);
-        // this.borderEl.setAttribute('material', 'color', this.data.isPreview ? '#008888' : '#888800');
 
-        // Line from offset to origin (0,0,0 is where the dot is)
+        // Line from bottom of box to origin
+        // Box bottom y is -height/2
+        var boxBottom = -height / 2;
+
         this.lineEl.setAttribute('line', {
-            start: { x: 0, y: this.offset.y - 0.06, z: 0 }, // Bottom of box
+            start: { x: 0, y: this.offset.y + boxBottom, z: 0 },
             end: { x: 0, y: 0, z: 0 },
             color: color,
             opacity: 0.8
@@ -220,42 +230,42 @@ AFRAME.registerComponent('annotation-mode-panel', {
     init: function () {
         // Container attached to controller
         this.panel = document.createElement('a-entity');
-        // Position: On top of the controller/wrist
-        // Adjust these coords for Quest layout
-        this.panel.setAttribute('position', '0 0.05 0.05');
-        this.panel.setAttribute('rotation', '-45 0 0'); // Tilted towards user
+        // Position: On top of the controller/wrist (Adjusted for Quest 2/Pro controllers)
+        this.panel.setAttribute('position', '0 0.04 0.15'); // Further back towards wrist
+        this.panel.setAttribute('rotation', '-30 0 0'); // Tilted up for viewing
 
         // Background
         var bg = document.createElement('a-entity');
-        bg.setAttribute('geometry', { primitive: 'plane', width: 0.2, height: 0.08 });
-        bg.setAttribute('material', { color: '#222', opacity: 0.8, shader: 'flat' });
+        bg.setAttribute('geometry', { primitive: 'plane', width: 0.15, height: 0.12 }); // Vertical rectangle
+        bg.setAttribute('material', { color: '#111', opacity: 0.9, shader: 'flat', transparent: true });
         this.panel.appendChild(bg);
 
         this.el.appendChild(this.panel);
 
-        // Mode Labels
+        // Mode Labels (Vertical List)
         this.labels = {};
         var modes = ['ATOM', 'RESIDUE', 'CHAIN'];
-        var xOffset = -0.06;
+        var startY = 0.03;
 
         modes.forEach((m, i) => {
             var label = document.createElement('a-text');
             label.setAttribute('value', m);
-            label.setAttribute('scale', '0.2 0.2 0.2');
-            label.setAttribute('color', '#888'); // Dim default
-            label.setAttribute('align', 'center');
-            label.setAttribute('position', `${xOffset + (i * 0.06)} 0 0.01`);
+            label.setAttribute('scale', '0.18 0.18 0.18');
+            label.setAttribute('color', '#555');
+            label.setAttribute('align', 'center'); // Center align
+            label.setAttribute('anchor', 'center');
+            label.setAttribute('position', `0 ${startY - (i * 0.03)} 0.01`); // Vertical stacking
             this.panel.appendChild(label);
             this.labels[m] = label;
         });
 
         // Header/Title
         var title = document.createElement('a-text');
-        title.setAttribute('value', 'ANNOTATION MODE');
-        title.setAttribute('scale', '0.15 0.15 0.15');
-        title.setAttribute('color', '#CCC');
+        title.setAttribute('value', 'MODE SELECT');
+        title.setAttribute('scale', '0.12 0.12 0.12');
+        title.setAttribute('color', '#AAA');
         title.setAttribute('align', 'center');
-        title.setAttribute('position', '0 0.025 0.01');
+        title.setAttribute('position', '0 0.05 0.01');
         this.panel.appendChild(title);
     },
 
@@ -263,11 +273,13 @@ AFRAME.registerComponent('annotation-mode-panel', {
         var modeUpper = mode.toUpperCase();
         for (var m in this.labels) {
             if (m === modeUpper) {
-                this.labels[m].setAttribute('color', '#00FF00'); // Active Green
-                this.labels[m].setAttribute('scale', '0.25 0.25 0.25'); // Pop
+                // Active State
+                this.labels[m].setAttribute('color', '#00FF00');
+                this.labels[m].setAttribute('scale', '0.22 0.22 0.22');
             } else {
-                this.labels[m].setAttribute('color', '#555'); // Dim
-                this.labels[m].setAttribute('scale', '0.2 0.2 0.2');
+                // Inactive State
+                this.labels[m].setAttribute('color', '#444');
+                this.labels[m].setAttribute('scale', '0.18 0.18 0.18');
             }
         }
     }
