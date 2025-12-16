@@ -16,7 +16,21 @@ AFRAME.registerComponent('molecular-renderer', {
             console.log('[MolecularRenderer] Injecting Annotation System v2...');
             var script = document.createElement('script');
             script.src = 'js/aframe-components/annotation-system-v2.js?v=INJECTED_' + Date.now();
-            script.onload = () => console.log('[MolecularRenderer] Annotation Script INJECTED & LOADED');
+            script.onload = () => {
+                console.log('[MolecularRenderer] Annotation Script INJECTED & LOADED');
+                // FORCE ATTACH COMPONENT to Left Hand
+                var leftHand = document.querySelector('#left-hand');
+                if (leftHand) {
+                    console.log('[MolecularRenderer] Force-attaching annotation-raycaster to left-hand');
+                    leftHand.removeAttribute('annotation-raycaster'); // Clear if partial
+                    setTimeout(() => {
+                        leftHand.setAttribute('annotation-raycaster', '');
+                        console.log('[MolecularRenderer] Component attached via JS');
+                    }, 500); // Small delay to ensure registration is processed
+                } else {
+                    console.error('[MolecularRenderer] Left hand not found!');
+                }
+            };
             script.onerror = () => console.error('[MolecularRenderer] Annotation Script INJECTION FAILED');
             document.head.appendChild(script);
         } else {
