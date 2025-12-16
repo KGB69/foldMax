@@ -109,9 +109,13 @@ AFRAME.registerSystem('annotation-manager', {
 
         if (saved) {
             try {
-                this.annotations = JSON.parse(saved);
-                console.log('[AnnotationManager] Loaded', this.annotations.length, 'annotations');
-                this.annotations.forEach(a => this.spawnLabel(a));
+                var loadedData = JSON.parse(saved);
+                console.log('[AnnotationManager] Loaded', loadedData.length, 'annotations');
+                loadedData.forEach(a => {
+                    // Re-add using the addAnnotation logic to ensure consistency
+                    // This will also re-save, which is fine.
+                    this.addAnnotation(a.atomData, a.pos, a.mode);
+                });
             } catch (e) {
                 console.error('[AnnotationManager] Error loading annotations:', e);
                 this.annotations = [];
@@ -125,6 +129,11 @@ AFRAME.registerSystem('annotation-manager', {
 // =========================================================================================
 // 2. ANNOTATION LABEL (COMPONENT)
 // =========================================================================================
+/**
+ * Component: annotation-label
+ * Renders the text and line.
+ * UPDATED: Fixes clipping and improves visual container.
+ */
 AFRAME.registerComponent('annotation-label', {
     schema: {
         text: { type: 'string', default: '' },
@@ -133,57 +142,93 @@ AFRAME.registerComponent('annotation-label', {
     },
 
     init: function () {
-        // Text Entity
+        this.offset = new THREE.Vector3(0, 0.2, 0); // 20cm above atom
+
+        // Container (Billboarded)
+        this.containerInfo = document.createElement('a-entity');
+        this.containerInfo.setAttribute('look-at', '[camera]'); // Always face user
+        this.el.appendChild(this.containerInfo);
+
+        // Background Plane (The "Neat Container")
+        this.bgEl = document.createElement('a-entity');
+        this.bgEl.setAttribute('geometry', { primitive: 'plane', width: 'auto', height: 0.15 });
+        this.bgEl.setAttribute('material', {
+            color: '#000000',
+            opacity: 0.8,
+            transparent: true,
+            depthTest: false, // ALWAYS ON TOP
+            shader: 'flat'
+        });
+        // Important: Render Order for "Always on Top" effect
+        this.bgEl.object3D.renderOrder = 9999;
+        this.containerInfo.appendChild(this.bgEl);
+
+        // Text
         this.textEl = document.createElement('a-entity');
         this.textEl.setAttribute('text', {
+            value: this.data.text,
             align: 'center',
             color: '#FFFFFF',
             width: 1.5,
-            shader: 'msdf',
-            font: 'https://raw.githubusercontent.com/etiennepinchon/aframe-fonts/master/fonts/roboto/Roboto-Bold.json'
+            wrapCount: 20
         });
+        // Disable depth test for text too
+        // We do this via a custom component or direct object access after load, 
+        // but for <a-text>, sticking to standard might be safer. 
+        // A-Frame text uses an SDF shader that usually handles depth well, 
+        // but we can try to force it via renderOrder.
+        this.textEl.object3D.renderOrder = 10000; // Above background
+        this.containerInfo.appendChild(this.textEl);
 
-        // Background Panel
-        var bgEl = document.createElement('a-entity');
-        bgEl.setAttribute('geometry', { primitive: 'plane', width: 'auto', height: 'auto' });
-        bgEl.setAttribute('material', { color: '#000000', opacity: 0.7, transparent: true, side: 'double' });
-        bgEl.setAttribute('scale', '0.45 0.2 1');
-        bgEl.setAttribute('position', '0 0 -0.01');
-        this.textEl.appendChild(bgEl);
-
-        // Connector Line (Empty container, updated in update())
+        // Connector Line
         this.lineEl = document.createElement('a-entity');
-
-        this.el.appendChild(this.textEl);
+        // We'll update line geometry in tick/update
         this.el.appendChild(this.lineEl);
-
-        // Billboarding
-        this.el.setAttribute('look-at', '[camera]');
-
-        // Offset relative to target
-        this.offset = new THREE.Vector3(0, 0.25, 0);
     },
 
     update: function () {
         this.textEl.setAttribute('text', 'value', this.data.text);
+
+        // Resize background based on text length (approximate)
+        var len = this.data.text.length;
+        var width = Math.max(0.3, len * 0.03); // Auto-width
+        this.bgEl.setAttribute('geometry', { width: width, height: 0.15 });
 
         var pos = this.data.targetPos;
         this.el.object3D.position.set(pos.x, pos.y, pos.z).add(this.offset);
 
         var lineColor = this.data.isPreview ? '#00FFFF' : '#FFFF00';
 
-        // Draw line from 0,0,0 (Label) down to 0,-offset,0 (Atom)
+        // Update Line
         this.lineEl.setAttribute('line', {
             start: '0 0 0',
-            end: '0 ' + (-this.offset.y) + ' 0',
-            color: lineColor
+            end: `0 ${-this.offset.y} 0`,
+            color: lineColor,
+            opacity: 0.8
         });
+        // Line also needs to see through geometry?
+        // Usually lines are thin enough to not matter, but let's try
+        // note: 'line' component creates an object, we can't easily access its material here immediately.
+    },
+
+    tick: function () {
+        // Ensure depthTest is off for the text mesh if it exists
+        var mesh = this.textEl.getObject3D('mesh');
+        if (mesh && mesh.material) {
+            mesh.material.depthTest = false;
+            mesh.material.transparent = true;
+        }
     }
 });
 
 // =========================================================================================
 // 3. ANNOTATION RAYCASTER (COMPONENT)
 // =========================================================================================
+/**
+ * Component: annotation-raycaster
+ * Handles interaction and state.
+ * UPDATED: Adds X-Button for Mode Switching (Atom -> Residue -> Chain)
+ */
 AFRAME.registerComponent('annotation-raycaster', {
     dependencies: ['raycaster'],
 
@@ -192,36 +237,67 @@ AFRAME.registerComponent('annotation-raycaster', {
         this.onTriggerDown = this.onTriggerDown.bind(this);
         this.onGripDown = this.onGripDown.bind(this);
         this.onYButtonDown = this.onYButtonDown.bind(this); // Debug Dump
+        this.onXButtonDown = this.onXButtonDown.bind(this); // Cycle Mode
         this.onIntersection = this.onIntersection.bind(this);
         this.onIntersectionCleared = this.onIntersectionCleared.bind(this);
-        this.tick = AFRAME.utils.throttleTick(this.tick.bind(this), 200); // 5Hz Check
+        this.tick = AFRAME.utils.throttleTick(this.tick.bind(this), 100); // 10Hz Check
 
         this.el.addEventListener('triggerdown', this.onTriggerDown);
         this.el.addEventListener('gripdown', this.onGripDown);
         this.el.addEventListener('ybuttondown', this.onYButtonDown);
+        this.el.addEventListener('xbuttondown', this.onXButtonDown);
         this.el.addEventListener('raycaster-intersection', this.onIntersection);
         this.el.addEventListener('raycaster-intersection-cleared', this.onIntersectionCleared);
 
         this.hoveredAtom = null;
         this.hoveredPoint = null;
         this.hoveredMesh = null;
-        this.lastProximityCheck = 0;
+
+        this.modes = ['atom', 'residue', 'chain'];
+        this.currentModeIndex = 0; // Start at 'atom'
+        this.currentMode = this.modes[0];
 
         // Create Preview Entity
         this.previewEl = document.createElement('a-entity');
         this.previewEl.setAttribute('annotation-label', { text: '', targetPos: { x: 0, y: 0, z: 0 }, isPreview: true });
         this.previewEl.object3D.visible = false;
         this.el.sceneEl.appendChild(this.previewEl);
+
+        // Mode Toast (Simple Text to show current mode)
+        this.modeTextEl = document.createElement('a-text');
+        this.modeTextEl.setAttribute('value', 'Mode: ATOM');
+        this.modeTextEl.setAttribute('position', '0 0.1 -0.1'); // Slightly above controller
+        this.modeTextEl.setAttribute('scale', '0.5 0.5 0.5');
+        this.modeTextEl.setAttribute('align', 'center');
+        this.modeTextEl.setAttribute('color', 'yellow');
+        this.el.appendChild(this.modeTextEl);
     },
 
     remove: function () {
         this.el.removeEventListener('triggerdown', this.onTriggerDown);
         this.el.removeEventListener('gripdown', this.onGripDown);
         this.el.removeEventListener('ybuttondown', this.onYButtonDown);
+        this.el.removeEventListener('xbuttondown', this.onXButtonDown);
         this.el.removeEventListener('raycaster-intersection', this.onIntersection);
         this.el.removeEventListener('raycaster-intersection-cleared', this.onIntersectionCleared);
         if (this.previewEl && this.previewEl.parentNode) this.previewEl.parentNode.removeChild(this.previewEl);
         if (this.hoveredMesh) this.removeGlow(this.hoveredMesh);
+        if (this.modeTextEl && this.modeTextEl.parentNode) this.modeTextEl.parentNode.removeChild(this.modeTextEl);
+    },
+
+    onXButtonDown: function () {
+        // Cycle Mode
+        this.currentModeIndex = (this.currentModeIndex + 1) % this.modes.length;
+        this.currentMode = this.modes[this.currentModeIndex];
+
+        // Update UI
+        this.modeTextEl.setAttribute('value', 'Mode: ' + this.currentMode.toUpperCase());
+        console.log('[AnnotationSystem] Switched to mode:', this.currentMode);
+
+        // Force refresh of preview if active
+        if (this.hoveredAtom && this.hoveredPoint) {
+            this.handleAtomHit(this.hoveredAtom, this.hoveredMesh, this.hoveredPoint);
+        }
     },
 
     tick: function (t, dt) {
@@ -258,7 +334,7 @@ AFRAME.registerComponent('annotation-raycaster', {
         scanner(molContainer.object3D);
 
         if (closestAtom) {
-            console.log('[Proximity] Found nearby atom:', closestAtom.data.name);
+            // console.log('[Proximity] Found nearby atom:', closestAtom.data.name);
             this.handleAtomHit(closestAtom.data, closestAtom.obj, closestAtom.point);
         }
     },
@@ -295,14 +371,14 @@ AFRAME.registerComponent('annotation-raycaster', {
         var intersection = raycaster.getIntersection(evt.detail.els[0]);
 
         if (intersection) {
-            console.log('[RaycasterHit] Hit:', intersection.object.uuid);
-            if (intersection.object.userData) {
-                if (intersection.object.userData.presentAtom) console.log(' - Has presentAtom');
-                if (intersection.object.userData.atom) console.log(' - Has atom');
-            }
+            // Verbose log is disabled to reduce noise, enable if needed
+            // console.log('[RaycasterHit] Hit:', intersection.object.uuid);
+        } else {
+            // console.log('[RaycasterHit] Event fired but getIntersection returned null for el:', evt.detail.els[0].id);
         }
 
         if (!intersection) return;
+
         var atomData = this.getAtomData(intersection.object);
         if (atomData) {
             this.handleAtomHit(atomData, intersection.object, intersection.point);
@@ -320,8 +396,10 @@ AFRAME.registerComponent('annotation-raycaster', {
             this.applyGlow(this.hoveredMesh);
         }
 
+        var labelText = this.formatLabelText(atomData);
+
         this.previewEl.setAttribute('annotation-label', {
-            text: this.formatLabelText(atomData),
+            text: labelText,
             targetPos: this.hoveredPoint,
             isPreview: true
         });
@@ -329,7 +407,6 @@ AFRAME.registerComponent('annotation-raycaster', {
     },
 
     onIntersectionCleared: function () {
-        // Proximity might immediately pick it up again, that's fine
         if (this.hoveredMesh) {
             this.removeGlow(this.hoveredMesh);
             this.hoveredMesh = null;
@@ -341,28 +418,34 @@ AFRAME.registerComponent('annotation-raycaster', {
 
     onTriggerDown: function () {
         if (this.hoveredAtom && this.hoveredPoint) {
-            console.log('[AnnotationSystem] Pinning');
-            this.el.sceneEl.emit('pin-annotation', {
-                atomData: this.hoveredAtom,
-                position: this.hoveredPoint
-            });
+            console.log('[AnnotationSystem] Pinning annotation');
+            var system = document.querySelector('a-scene').systems['annotation-manager'];
+            if (system) {
+                // Pass the current mode so the pinned note matches what the user saw
+                system.addAnnotation(this.hoveredAtom, this.hoveredPoint, this.currentMode);
+            }
         }
     },
 
     onGripDown: function () {
-        console.log('[AnnotationSystem] Clearing');
-        this.el.sceneEl.emit('clear-annotations');
+        console.log('[AnnotationSystem] Clearing annotations');
+        var system = document.querySelector('a-scene').systems['annotation-manager'];
+        if (system) {
+            system.clearAll();
+        }
     },
 
     applyGlow: function (mesh) {
         if (!mesh.material) return;
+        // Simple emissive highlight
+        // Handle both single material and array of materials
         var mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
         mats.forEach(mat => {
-            if (!mat.userData.originalEmissive) {
-                mat.userData.originalEmissive = mat.emissive ? mat.emissive.clone() : new THREE.Color(0, 0, 0);
+            if (mat.emissive) {
+                mat.userData.originalEmissive = mat.emissive.getHex(); // Store original
+                mat.emissive.setHex(0x00FF00); // Green glow
+                mat.needsUpdate = true;
             }
-            if (mat.emissive) mat.emissive.setHex(0x444444);
-            mat.needsUpdate = true;
         });
     },
 
@@ -370,17 +453,21 @@ AFRAME.registerComponent('annotation-raycaster', {
         if (!mesh || !mesh.material) return;
         var mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
         mats.forEach(mat => {
-            if (mat.userData.originalEmissive) {
-                mat.emissive.copy(mat.userData.originalEmissive);
+            if (mat.userData.originalEmissive !== undefined) {
+                mat.emissive.setHex(mat.userData.originalEmissive);
+                delete mat.userData.originalEmissive; // Clean up
+                mat.needsUpdate = true;
             } else {
-                mat.emissive.setHex(0x000000);
+                // If no original was stored, reset to black (no emissive)
+                if (mat.emissive) {
+                    mat.emissive.setHex(0x000000);
+                    mat.needsUpdate = true;
+                }
             }
-            mat.needsUpdate = true;
         });
     },
 
     getAtomData: function (object) {
-        var curr = object;
         while (curr) {
             if (curr.userData) {
                 var atom = curr.userData.presentAtom || curr.userData.atom;
