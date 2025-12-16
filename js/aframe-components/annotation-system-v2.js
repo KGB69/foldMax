@@ -19,18 +19,15 @@ AFRAME.registerSystem('annotation-manager', {
         this.annotations = [];
         this.pdbId = null;
 
-        // Listen for PDB load events
         this.el.addEventListener('pdb-loading-start', (evt) => {
             this.pdbId = evt.detail.pdbId;
             this.loadAnnotations();
         });
 
-        // Listen for pin events
         this.el.addEventListener('pin-annotation', (evt) => {
-            this.addAnnotation(evt.detail.atomData, evt.detail.position);
+            this.addAnnotation(evt.detail.atomData, evt.detail.position, evt.detail.mode);
         });
 
-        // Listen for clear events
         this.el.addEventListener('clear-annotations', () => {
             this.clearAll();
         });
@@ -38,61 +35,52 @@ AFRAME.registerSystem('annotation-manager', {
         console.log('[AnnotationManager] System Ready');
     },
 
-    addAnnotation: function (atomData, position) {
-        if (!this.pdbId) {
-            console.warn('[AnnotationManager] No PDB loaded, cannot save annotation.');
-        }
+    addAnnotation: function (atomData, pos, mode) {
+        mode = mode || 'atom';
+        var id = atomData.chainname + '_' + atomData.resid + '_' + atomData.name + '_' + mode;
 
-        var id = atomData.chainname + '_' + atomData.resid + '_' + atomData.name;
-
-        // Check duplicates
         var existing = this.annotations.find(a => a.id === id);
-        if (existing) {
-            console.log('[AnnotationManager] Annotation already exists:', id);
-            return;
-        }
+        if (existing) return;
+
+        var labelEl = document.createElement('a-entity');
+        labelEl.classList.add('pinned-annotation');
+        var text = this.formatText(atomData, mode);
+
+        labelEl.setAttribute('annotation-label', {
+            text: text,
+            targetPos: pos,
+            isPreview: false
+        });
+
+        this.el.sceneEl.appendChild(labelEl);
 
         var annotation = {
             id: id,
-            pos: { x: position.x, y: position.y, z: position.z },
-            text: this.formatText(atomData),
+            pos: { x: pos.x, y: pos.y, z: pos.z },
+            text: text,
             atomData: atomData,
+            mode: mode,
             timestamp: Date.now()
         };
 
         this.annotations.push(annotation);
-        this.spawnLabel(annotation);
-        this.save();
+        this.saveAnnotations();
+    },
+
+    formatText: function (data, mode) {
+        if (mode === 'chain') return `Chain ${data.chainname}`;
+        if (mode === 'residue') return `Res ${data.resname} ${data.resid}`;
+        return `${data.name} #${data.id}\n${data.resname} ${data.resid}`;
     },
 
     clearAll: function () {
-        var labels = document.querySelectorAll('[annotation-label]');
-        labels.forEach(el => {
-            if (el.classList.contains('pinned-annotation')) {
-                el.parentNode.removeChild(el);
-            }
-        });
-
+        var labels = document.querySelectorAll('.pinned-annotation');
+        labels.forEach(el => el.parentNode.removeChild(el));
         this.annotations = [];
-        this.save();
-        console.log('[AnnotationManager] Cleared all annotations');
+        this.saveAnnotations();
     },
 
-    spawnLabel: function (data) {
-        var el = document.createElement('a-entity');
-        el.classList.add('pinned-annotation');
-        el.setAttribute('annotation-label', {
-            text: data.text,
-            targetPos: data.pos
-        });
-        this.el.sceneEl.appendChild(el);
-    },
-
-    formatText: function (atom) {
-        return `${atom.resname} ${atom.resid}\n${atom.name} (${atom.chainname})`;
-    },
-
-    save: function () {
+    saveAnnotations: function () {
         if (!this.pdbId) return;
         var key = 'vrmol_annotations_' + this.pdbId;
         localStorage.setItem(key, JSON.stringify(this.annotations));
@@ -101,27 +89,19 @@ AFRAME.registerSystem('annotation-manager', {
     loadAnnotations: function () {
         var labels = document.querySelectorAll('.pinned-annotation');
         labels.forEach(el => el.parentNode.removeChild(el));
-
         if (!this.pdbId) return;
-
         var key = 'vrmol_annotations_' + this.pdbId;
         var saved = localStorage.getItem(key);
-
         if (saved) {
             try {
                 var loadedData = JSON.parse(saved);
-                console.log('[AnnotationManager] Loaded', loadedData.length, 'annotations');
+                this.annotations = [];
                 loadedData.forEach(a => {
-                    // Re-add using the addAnnotation logic to ensure consistency
-                    // This will also re-save, which is fine.
                     this.addAnnotation(a.atomData, a.pos, a.mode);
                 });
             } catch (e) {
-                console.error('[AnnotationManager] Error loading annotations:', e);
                 this.annotations = [];
             }
-        } else {
-            this.annotations = [];
         }
     }
 });
@@ -283,7 +263,7 @@ AFRAME.registerComponent('annotation-raycaster', {
     },
 
     onYButtonDown: function () {
-        // Cycle Mode (Previously on X)
+        // Cycle Mode
         this.currentModeIndex = (this.currentModeIndex + 1) % this.modes.length;
         this.currentMode = this.modes[this.currentModeIndex];
 
@@ -291,112 +271,51 @@ AFRAME.registerComponent('annotation-raycaster', {
         this.modeTextEl.setAttribute('value', 'Mode: ' + this.currentMode.toUpperCase());
         console.log('[AnnotationSystem] Switched to mode:', this.currentMode);
 
-        // Force refresh of preview if active
+        // Force refresh
         if (this.hoveredAtom && this.hoveredPoint) {
             this.handleAtomHit(this.hoveredAtom, this.hoveredMesh, this.hoveredPoint);
         }
     },
 
     tick: function (t, dt) {
-        // PROXIMITY SCANNER (Fallback if Raycaster fails)
-        // Only run if we don't have a valid raycaster hit
         if (this.hoveredAtom) return;
-
         var handPos = new THREE.Vector3();
         this.el.object3D.getWorldPosition(handPos);
-
-        var molContainer = document.querySelector('#molecule-container');
-        if (!molContainer) return;
-
-        var closestAtom = null;
-        var minDst = 0.2; // 20cm Proximity Radius
-
+        var mol = document.querySelector('#molecule-container');
+        if (!mol) return;
+        var closest = null;
+        var minDst = 0.2;
         var scanner = (obj) => {
             if (obj.userData && (obj.userData.presentAtom || obj.userData.atom)) {
-                var atomPos = new THREE.Vector3();
-                obj.getWorldPosition(atomPos);
-                var dst = handPos.distanceTo(atomPos);
-                if (dst < minDst) {
-                    minDst = dst;
-                    closestAtom = {
-                        data: obj.userData.presentAtom || obj.userData.atom,
-                        obj: obj,
-                        point: atomPos
-                    };
-                }
+                var p = new THREE.Vector3();
+                obj.getWorldPosition(p);
+                var d = handPos.distanceTo(p);
+                if (d < minDst) { minDst = d; closest = { data: obj.userData.presentAtom || obj.userData.atom, obj: obj, point: p }; }
             }
             if (obj.children) obj.children.forEach(scanner);
         };
-
-        scanner(molContainer.object3D);
-
-        if (closestAtom) {
-            // console.log('[Proximity] Found nearby atom:', closestAtom.data.name);
-            this.handleAtomHit(closestAtom.data, closestAtom.obj, closestAtom.point);
-        }
-    },
-
-    onYButtonDown: function () {
-        console.log('[AnnotationSystem] === DEBUG SCENE COMPOSITION ===');
-        var mol = document.querySelector('#molecule-container');
-        if (!mol) { console.log('No Molecule Container'); return; }
-
-        var count = 0;
-        var withData = 0;
-        var meshes = 0;
-
-        var traverse = (obj, depth) => {
-            count++;
-            if (obj.isMesh) meshes++;
-            if (obj.userData && (obj.userData.atom || obj.userData.presentAtom)) withData++;
-
-            // Log first few interesting items
-            if (count < 20 || (obj.userData && (obj.userData.atom || obj.userData.presentAtom) && withData < 5)) {
-                var indent = ' '.repeat(depth * 2);
-                console.log(`${indent}${obj.type} - Name: ${obj.name} - UserDataKeys: ${Object.keys(obj.userData).join(',')}`);
-            }
-            if (obj.children) obj.children.forEach(c => traverse(c, depth + 1));
-        };
-
-        console.log('Traversing #molecule-container...');
-        traverse(mol.object3D, 0);
-        console.log(`[Summary] Total: ${count}, Meshes: ${meshes}, Atoms(UserData): ${withData}`);
+        scanner(mol.object3D);
+        if (closest) this.handleAtomHit(closest.data, closest.obj, closest.point);
     },
 
     onIntersection: function (evt) {
         var raycaster = this.el.components.raycaster;
         var intersection = raycaster.getIntersection(evt.detail.els[0]);
-
-        if (intersection) {
-            // Verbose log is disabled to reduce noise, enable if needed
-            // console.log('[RaycasterHit] Hit:', intersection.object.uuid);
-        } else {
-            // console.log('[RaycasterHit] Event fired but getIntersection returned null for el:', evt.detail.els[0].id);
-        }
-
         if (!intersection) return;
-
         var atomData = this.getAtomData(intersection.object);
-        if (atomData) {
-            this.handleAtomHit(atomData, intersection.object, intersection.point);
-        }
+        if (atomData) this.handleAtomHit(atomData, intersection.object, intersection.point);
     },
 
-    // Refactored common handler
     handleAtomHit: function (atomData, object, point) {
         this.hoveredAtom = atomData;
         this.hoveredPoint = point;
-
         if (this.hoveredMesh !== object) {
             if (this.hoveredMesh) this.removeGlow(this.hoveredMesh);
             this.hoveredMesh = object;
             this.applyGlow(this.hoveredMesh);
         }
-
-        var labelText = this.formatLabelText(atomData);
-
         this.previewEl.setAttribute('annotation-label', {
-            text: labelText,
+            text: this.formatLabelText(atomData),
             targetPos: this.hoveredPoint,
             isPreview: true
         });
@@ -415,32 +334,25 @@ AFRAME.registerComponent('annotation-raycaster', {
 
     onTriggerDown: function () {
         if (this.hoveredAtom && this.hoveredPoint) {
-            console.log('[AnnotationSystem] Pinning annotation');
             var system = document.querySelector('a-scene').systems['annotation-manager'];
             if (system) {
-                // Pass the current mode so the pinned note matches what the user saw
                 system.addAnnotation(this.hoveredAtom, this.hoveredPoint, this.currentMode);
             }
         }
     },
 
     onGripDown: function () {
-        console.log('[AnnotationSystem] Clearing annotations');
         var system = document.querySelector('a-scene').systems['annotation-manager'];
-        if (system) {
-            system.clearAll();
-        }
+        if (system) system.clearAll();
     },
 
     applyGlow: function (mesh) {
         if (!mesh.material) return;
-        // Simple emissive highlight
-        // Handle both single material and array of materials
         var mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
         mats.forEach(mat => {
             if (mat.emissive) {
-                mat.userData.originalEmissive = mat.emissive.getHex(); // Store original
-                mat.emissive.setHex(0x00FF00); // Green glow
+                mat.userData.originalEmissive = mat.emissive.getHex();
+                mat.emissive.setHex(0x00FF00);
                 mat.needsUpdate = true;
             }
         });
@@ -452,10 +364,9 @@ AFRAME.registerComponent('annotation-raycaster', {
         mats.forEach(mat => {
             if (mat.userData.originalEmissive !== undefined) {
                 mat.emissive.setHex(mat.userData.originalEmissive);
-                delete mat.userData.originalEmissive; // Clean up
+                delete mat.userData.originalEmissive;
                 mat.needsUpdate = true;
             } else {
-                // If no original was stored, reset to black (no emissive)
                 if (mat.emissive) {
                     mat.emissive.setHex(0x000000);
                     mat.needsUpdate = true;
@@ -465,21 +376,20 @@ AFRAME.registerComponent('annotation-raycaster', {
     },
 
     getAtomData: function (object) {
+        var curr = object;
         while (curr) {
-            if (curr.userData) {
-                var atom = curr.userData.presentAtom || curr.userData.atom;
-                if (atom) return atom;
+            if (curr.userData && (curr.userData.presentAtom || curr.userData.atom)) {
+                return curr.userData.presentAtom || curr.userData.atom;
             }
-            if (curr.userData && curr.userData.group && curr.userData.group === 'main') break;
             curr = curr.parent;
+            if (curr && curr.id === 'molecule-container') break;
         }
         return null;
     },
 
-    formatLabelText: function (atom) {
-        var res = atom.resname || '???';
-        var resid = atom.resid || '';
-        var name = atom.name || '';
-        return `${res} ${resid}\n${name}`;
+    formatLabelText: function (data) {
+        if (this.currentMode === 'chain') return `Chain ${data.chainname}`;
+        if (this.currentMode === 'residue') return `Res ${data.resname} ${data.resid}`;
+        return `Atom: ${data.name} #${data.id}\n${data.resname} ${data.resid}`;
     }
 });
