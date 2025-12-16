@@ -224,110 +224,110 @@ AFRAME.registerComponent('annotation-raycaster', {
         var intersection = raycaster.getIntersection(evt.detail.els[0]);
 
         if (intersection) {
-            if (intersection) {
-                console.log('[RaycasterHit] Hit:', intersection.object.uuid, 'Type:', intersection.object.type);
-                if (intersection.object.userData) {
-                    console.log(' - UserData Keys:', Object.keys(intersection.object.userData));
-                    if (intersection.object.userData.presentAtom) console.log(' - Has presentAtom');
-                    if (intersection.object.userData.atom) console.log(' - Has atom');
-                }
-            } else {
-                // If event fired but no intersection, it means we hit something else?
-                console.log('[RaycasterHit] Event fired but getIntersection returned null for el:', evt.detail.els[0].id);
+            // DEBUG LOGS
+            console.log('[RaycasterHit] Hit:', intersection.object.uuid, 'Type:', intersection.object.type);
+            if (intersection.object.userData) {
+                console.log(' - UserData Keys:', Object.keys(intersection.object.userData));
+                if (intersection.object.userData.presentAtom) console.log(' - Has presentAtom');
+                if (intersection.object.userData.atom) console.log(' - Has atom');
             }
-
-            if (!intersection) return;
-
-            var object = intersection.object;
-            var atomData = this.getAtomData(object);
-
-            if (atomData) {
-                console.log('[AnnotationSystem] Hit Atom:', atomData.name);
-                this.hoveredAtom = atomData;
-                this.hoveredPoint = intersection.point;
-
-                if (this.hoveredMesh !== object) {
-                    if (this.hoveredMesh) this.removeGlow(this.hoveredMesh);
-                    this.hoveredMesh = object;
-                    this.applyGlow(this.hoveredMesh);
-                }
-
-                this.previewEl.setAttribute('annotation-label', {
-                    text: this.formatLabelText(atomData),
-                    targetPos: this.hoveredPoint,
-                    isPreview: true
-                });
-                this.previewEl.object3D.visible = true;
-            }
-        },
-
-        onIntersectionCleared: function () {
-            if (this.hoveredMesh) {
-                this.removeGlow(this.hoveredMesh);
-                this.hoveredMesh = null;
-            }
-            this.hoveredAtom = null;
-            this.hoveredPoint = null;
-            this.previewEl.object3D.visible = false;
-        },
-
-        onTriggerDown: function () {
-            if (this.hoveredAtom && this.hoveredPoint) {
-                console.log('[AnnotationSystem] Pinning');
-                this.el.sceneEl.emit('pin-annotation', {
-                    atomData: this.hoveredAtom,
-                    position: this.hoveredPoint
-                });
-            }
-        },
-
-        onGripDown: function () {
-            console.log('[AnnotationSystem] Clearing');
-            this.el.sceneEl.emit('clear-annotations');
-        },
-
-        applyGlow: function (mesh) {
-            if (!mesh.material) return;
-            var mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
-            mats.forEach(mat => {
-                if (!mat.userData.originalEmissive) {
-                    mat.userData.originalEmissive = mat.emissive ? mat.emissive.clone() : new THREE.Color(0, 0, 0);
-                }
-                if (mat.emissive) mat.emissive.setHex(0x444444);
-                mat.needsUpdate = true;
-            });
-        },
-
-        removeGlow: function (mesh) {
-            if (!mesh || !mesh.material) return;
-            var mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
-            mats.forEach(mat => {
-                if (mat.userData.originalEmissive) {
-                    mat.emissive.copy(mat.userData.originalEmissive);
-                } else {
-                    mat.emissive.setHex(0x000000);
-                }
-                mat.needsUpdate = true;
-            });
-        },
-
-        getAtomData: function (object) {
-            var curr = object;
-            while (curr) {
-                if (curr.userData) {
-                    var atom = curr.userData.presentAtom || curr.userData.atom;
-                    if (atom) return atom;
-                }
-                if (curr.userData && curr.userData.group && curr.userData.group === 'main') break;
-                curr = curr.parent;
-            }
-            return null;
-        },
-
-        formatLabelText: function (atom) {
-            var res = atom.resname || '???';
-            var resid = atom.resid || '';
-            var name = atom.name || '';
-            return `${res} ${resid}\n${name}`;
+        } else {
+            // If event fired but no intersection, it means we hit something else?
+            // console.log('[RaycasterHit] Event fired but getIntersection returned null for el:', evt.detail.els[0].id);
         }
-    });
+
+        if (!intersection) return;
+
+        var object = intersection.object;
+        var atomData = this.getAtomData(object);
+
+        if (atomData) {
+            console.log('[AnnotationSystem] Hit Atom:', atomData.name);
+            this.hoveredAtom = atomData;
+            this.hoveredPoint = intersection.point;
+
+            if (this.hoveredMesh !== object) {
+                if (this.hoveredMesh) this.removeGlow(this.hoveredMesh);
+                this.hoveredMesh = object;
+                this.applyGlow(this.hoveredMesh);
+            }
+
+            this.previewEl.setAttribute('annotation-label', {
+                text: this.formatLabelText(atomData),
+                targetPos: this.hoveredPoint,
+                isPreview: true
+            });
+            this.previewEl.object3D.visible = true;
+        }
+    },
+
+    onIntersectionCleared: function () {
+        if (this.hoveredMesh) {
+            this.removeGlow(this.hoveredMesh);
+            this.hoveredMesh = null;
+        }
+        this.hoveredAtom = null;
+        this.hoveredPoint = null;
+        this.previewEl.object3D.visible = false;
+    },
+
+    onTriggerDown: function () {
+        if (this.hoveredAtom && this.hoveredPoint) {
+            console.log('[AnnotationSystem] Pinning');
+            this.el.sceneEl.emit('pin-annotation', {
+                atomData: this.hoveredAtom,
+                position: this.hoveredPoint
+            });
+        }
+    },
+
+    onGripDown: function () {
+        console.log('[AnnotationSystem] Clearing');
+        this.el.sceneEl.emit('clear-annotations');
+    },
+
+    applyGlow: function (mesh) {
+        if (!mesh.material) return;
+        var mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+        mats.forEach(mat => {
+            if (!mat.userData.originalEmissive) {
+                mat.userData.originalEmissive = mat.emissive ? mat.emissive.clone() : new THREE.Color(0, 0, 0);
+            }
+            if (mat.emissive) mat.emissive.setHex(0x444444);
+            mat.needsUpdate = true;
+        });
+    },
+
+    removeGlow: function (mesh) {
+        if (!mesh || !mesh.material) return;
+        var mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+        mats.forEach(mat => {
+            if (mat.userData.originalEmissive) {
+                mat.emissive.copy(mat.userData.originalEmissive);
+            } else {
+                mat.emissive.setHex(0x000000);
+            }
+            mat.needsUpdate = true;
+        });
+    },
+
+    getAtomData: function (object) {
+        var curr = object;
+        while (curr) {
+            if (curr.userData) {
+                var atom = curr.userData.presentAtom || curr.userData.atom;
+                if (atom) return atom;
+            }
+            if (curr.userData && curr.userData.group && curr.userData.group === 'main') break;
+            curr = curr.parent;
+        }
+        return null;
+    },
+
+    formatLabelText: function (atom) {
+        var res = atom.resname || '???';
+        var resid = atom.resid || '';
+        var name = atom.name || '';
+        return `${res} ${resid}\n${name}`;
+    }
+});
