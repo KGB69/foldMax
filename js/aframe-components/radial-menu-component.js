@@ -550,8 +550,8 @@ AFRAME.registerComponent('radial-menu', {
     },
 
     drawStructureTab: function (ctx, startY) {
-        var btnW = 400;
-        var btnH = 90;
+        var btnW = 260;
+        var btnH = 80;
         var gap = 30;
         var x = 80;
         var y = startY;
@@ -559,14 +559,18 @@ AFRAME.registerComponent('radial-menu', {
         this.drawSectionTitle(ctx, 'Representation', x, y);
         y += 80;
 
-        // Only show working modes: Cartoon (13) and Ribbon (10)
-        // Sphere (3), Stick (2), Ball+Rod modes generate extremely heavy meshes
+        // Row 1: Ball & Rod (mode 6 = PDB.BALL_AND_ROD)
+        this.registerButton('ballrod', x, y, btnW * 2 + gap, btnH, () => this.changeStructureMode(6));
+        this.drawButton(ctx, '⚛️ Ball & Rod', x, y, btnW * 2 + gap, btnH, 'rgba(100, 200, 100, 0.5)', 36);
 
+        y += btnH + gap;
+
+        // Row 2: Cartoon and Ribbon
         this.registerButton('cartoon', x, y, btnW, btnH, () => this.changeStructureMode(13));
-        this.drawButton(ctx, '🎭 Cartoon', x, y, btnW, btnH, 'rgba(100, 200, 100, 0.5)', 36);
+        this.drawButton(ctx, '🎭 Cartoon', x, y, btnW, btnH, 'rgba(100, 200, 100, 0.5)', 32);
 
         this.registerButton('ribbon', x + btnW + gap, y, btnW, btnH, () => this.changeStructureMode(10));
-        this.drawButton(ctx, '🎀 Ribbon', x + btnW + gap, y, btnW, btnH, 'rgba(100, 200, 100, 0.5)', 36);
+        this.drawButton(ctx, '🎀 Ribbon', x + btnW + gap, y, btnW, btnH, 'rgba(100, 200, 100, 0.5)', 32);
     },
 
     drawLigandTab: function (ctx, startY) {
