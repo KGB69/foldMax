@@ -569,9 +569,8 @@ AFRAME.registerComponent('radial-menu', {
         for (var i = 0; i < modes.length; i++) {
             var xPos = x + i * (btnW + gap);
             var modeValue = modes[i].mode;
-            this.registerButton(modes[i].id, xPos, y, btnW, btnH, (function (mode) {
-                return function () { this.changeStructureMode(mode); };
-            }.bind(this))(modeValue));
+            // Use arrow function to preserve 'this' context
+            this.registerButton(modes[i].id, xPos, y, btnW, btnH, ((mode) => () => this.changeStructureMode(mode))(modeValue));
             this.drawButton(ctx, modes[i].label, xPos, y, btnW, btnH, 'rgba(100, 200, 100, 0.4)', 32);
         }
 
