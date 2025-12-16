@@ -191,17 +191,21 @@ AFRAME.registerComponent('annotation-raycaster', {
         console.log('[AnnotationRaycaster] Init');
         this.onTriggerDown = this.onTriggerDown.bind(this);
         this.onGripDown = this.onGripDown.bind(this);
+        this.onYButtonDown = this.onYButtonDown.bind(this); // Debug Dump
         this.onIntersection = this.onIntersection.bind(this);
         this.onIntersectionCleared = this.onIntersectionCleared.bind(this);
+        this.tick = AFRAME.utils.throttleTick(this.tick.bind(this), 200); // 5Hz Check
 
         this.el.addEventListener('triggerdown', this.onTriggerDown);
         this.el.addEventListener('gripdown', this.onGripDown);
+        this.el.addEventListener('ybuttondown', this.onYButtonDown);
         this.el.addEventListener('raycaster-intersection', this.onIntersection);
         this.el.addEventListener('raycaster-intersection-cleared', this.onIntersectionCleared);
 
         this.hoveredAtom = null;
         this.hoveredPoint = null;
         this.hoveredMesh = null;
+        this.lastProximityCheck = 0;
 
         // Create Preview Entity
         this.previewEl = document.createElement('a-entity');
@@ -213,10 +217,77 @@ AFRAME.registerComponent('annotation-raycaster', {
     remove: function () {
         this.el.removeEventListener('triggerdown', this.onTriggerDown);
         this.el.removeEventListener('gripdown', this.onGripDown);
+        this.el.removeEventListener('ybuttondown', this.onYButtonDown);
         this.el.removeEventListener('raycaster-intersection', this.onIntersection);
         this.el.removeEventListener('raycaster-intersection-cleared', this.onIntersectionCleared);
         if (this.previewEl && this.previewEl.parentNode) this.previewEl.parentNode.removeChild(this.previewEl);
         if (this.hoveredMesh) this.removeGlow(this.hoveredMesh);
+    },
+
+    tick: function (t, dt) {
+        // PROXIMITY SCANNER (Fallback if Raycaster fails)
+        // Only run if we don't have a valid raycaster hit
+        if (this.hoveredAtom) return;
+
+        var handPos = new THREE.Vector3();
+        this.el.object3D.getWorldPosition(handPos);
+
+        var molContainer = document.querySelector('#molecule-container');
+        if (!molContainer) return;
+
+        var closestAtom = null;
+        var minDst = 0.2; // 20cm Proximity Radius
+
+        var scanner = (obj) => {
+            if (obj.userData && (obj.userData.presentAtom || obj.userData.atom)) {
+                var atomPos = new THREE.Vector3();
+                obj.getWorldPosition(atomPos);
+                var dst = handPos.distanceTo(atomPos);
+                if (dst < minDst) {
+                    minDst = dst;
+                    closestAtom = {
+                        data: obj.userData.presentAtom || obj.userData.atom,
+                        obj: obj,
+                        point: atomPos
+                    };
+                }
+            }
+            if (obj.children) obj.children.forEach(scanner);
+        };
+
+        scanner(molContainer.object3D);
+
+        if (closestAtom) {
+            console.log('[Proximity] Found nearby atom:', closestAtom.data.name);
+            this.handleAtomHit(closestAtom.data, closestAtom.obj, closestAtom.point);
+        }
+    },
+
+    onYButtonDown: function () {
+        console.log('[AnnotationSystem] === DEBUG SCENE COMPOSITION ===');
+        var mol = document.querySelector('#molecule-container');
+        if (!mol) { console.log('No Molecule Container'); return; }
+
+        var count = 0;
+        var withData = 0;
+        var meshes = 0;
+
+        var traverse = (obj, depth) => {
+            count++;
+            if (obj.isMesh) meshes++;
+            if (obj.userData && (obj.userData.atom || obj.userData.presentAtom)) withData++;
+
+            // Log first few interesting items
+            if (count < 20 || (obj.userData && (obj.userData.atom || obj.userData.presentAtom) && withData < 5)) {
+                var indent = ' '.repeat(depth * 2);
+                console.log(`${indent}${obj.type} - Name: ${obj.name} - UserDataKeys: ${Object.keys(obj.userData).join(',')}`);
+            }
+            if (obj.children) obj.children.forEach(c => traverse(c, depth + 1));
+        };
+
+        console.log('Traversing #molecule-container...');
+        traverse(mol.object3D, 0);
+        console.log(`[Summary] Total: ${count}, Meshes: ${meshes}, Atoms(UserData): ${withData}`);
     },
 
     onIntersection: function (evt) {
@@ -224,44 +295,41 @@ AFRAME.registerComponent('annotation-raycaster', {
         var intersection = raycaster.getIntersection(evt.detail.els[0]);
 
         if (intersection) {
-            // DEBUG LOGS
-            console.log('[RaycasterHit] Hit:', intersection.object.uuid, 'Type:', intersection.object.type);
+            console.log('[RaycasterHit] Hit:', intersection.object.uuid);
             if (intersection.object.userData) {
-                console.log(' - UserData Keys:', Object.keys(intersection.object.userData));
                 if (intersection.object.userData.presentAtom) console.log(' - Has presentAtom');
                 if (intersection.object.userData.atom) console.log(' - Has atom');
             }
-        } else {
-            // If event fired but no intersection, it means we hit something else?
-            // console.log('[RaycasterHit] Event fired but getIntersection returned null for el:', evt.detail.els[0].id);
         }
 
         if (!intersection) return;
-
-        var object = intersection.object;
-        var atomData = this.getAtomData(object);
-
+        var atomData = this.getAtomData(intersection.object);
         if (atomData) {
-            console.log('[AnnotationSystem] Hit Atom:', atomData.name);
-            this.hoveredAtom = atomData;
-            this.hoveredPoint = intersection.point;
-
-            if (this.hoveredMesh !== object) {
-                if (this.hoveredMesh) this.removeGlow(this.hoveredMesh);
-                this.hoveredMesh = object;
-                this.applyGlow(this.hoveredMesh);
-            }
-
-            this.previewEl.setAttribute('annotation-label', {
-                text: this.formatLabelText(atomData),
-                targetPos: this.hoveredPoint,
-                isPreview: true
-            });
-            this.previewEl.object3D.visible = true;
+            this.handleAtomHit(atomData, intersection.object, intersection.point);
         }
     },
 
+    // Refactored common handler
+    handleAtomHit: function (atomData, object, point) {
+        this.hoveredAtom = atomData;
+        this.hoveredPoint = point;
+
+        if (this.hoveredMesh !== object) {
+            if (this.hoveredMesh) this.removeGlow(this.hoveredMesh);
+            this.hoveredMesh = object;
+            this.applyGlow(this.hoveredMesh);
+        }
+
+        this.previewEl.setAttribute('annotation-label', {
+            text: this.formatLabelText(atomData),
+            targetPos: this.hoveredPoint,
+            isPreview: true
+        });
+        this.previewEl.object3D.visible = true;
+    },
+
     onIntersectionCleared: function () {
+        // Proximity might immediately pick it up again, that's fine
         if (this.hoveredMesh) {
             this.removeGlow(this.hoveredMesh);
             this.hoveredMesh = null;
