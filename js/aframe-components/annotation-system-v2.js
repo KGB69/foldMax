@@ -360,24 +360,80 @@ AFRAME.registerComponent('annotation-raycaster', {
     },
 
     tick: function (t, dt) {
-        if (this.hoveredAtom) return;
-        var handPos = new THREE.Vector3();
-        this.el.object3D.getWorldPosition(handPos);
+        // Custom THREE.js Raycaster for actual pointer detection
+        // This bypasses A-Frame's raycaster which only works on entities
+
         var mol = document.querySelector('#molecule-container');
-        if (!mol) return;
+        if (!mol || !mol.object3D) return;
+
+        // Get controller world position and direction
+        var controllerPos = new THREE.Vector3();
+        var controllerDir = new THREE.Vector3(0, 0, -1); // Forward in local space
+
+        this.el.object3D.getWorldPosition(controllerPos);
+        this.el.object3D.getWorldQuaternion(this._quat || (this._quat = new THREE.Quaternion()));
+        controllerDir.applyQuaternion(this._quat);
+
+        // Create raycaster
+        if (!this._raycaster) {
+            this._raycaster = new THREE.Raycaster();
+            this._raycaster.params.Line = { threshold: 0.1 };
+            this._raycaster.params.Points = { threshold: 0.1 };
+        }
+
+        this._raycaster.set(controllerPos, controllerDir);
+        this._raycaster.far = 50; // Match HTML config
+
+        // Collect all meshes with atom data
+        var meshes = [];
+        var collectMeshes = (obj) => {
+            if (obj.isMesh && obj.userData && (obj.userData.presentAtom || obj.userData.atom)) {
+                meshes.push(obj);
+            }
+            if (obj.children) obj.children.forEach(collectMeshes);
+        };
+        collectMeshes(mol.object3D);
+
+        // Perform raycast
+        var intersects = this._raycaster.intersectObjects(meshes, false);
+
+        if (intersects.length > 0) {
+            var hit = intersects[0];
+            var atomData = hit.object.userData.presentAtom || hit.object.userData.atom;
+
+            if (atomData) {
+                this.handleAtomHit(atomData, hit.object, hit.point);
+                return; // Found a hit, stop here
+            }
+        }
+
+        // FALLBACK: Proximity detection if ray misses (hand might be inside molecule)
+        if (this.hoveredAtom) return; // Already have something from raycaster
+
+        var handPos = controllerPos;
         var closest = null;
-        var minDst = 0.2;
-        var scanner = (obj) => {
+        var minDst = 0.15; // 15cm proximity
+
+        var scanProximity = (obj) => {
             if (obj.userData && (obj.userData.presentAtom || obj.userData.atom)) {
                 var p = new THREE.Vector3();
                 obj.getWorldPosition(p);
                 var d = handPos.distanceTo(p);
-                if (d < minDst) { minDst = d; closest = { data: obj.userData.presentAtom || obj.userData.atom, obj: obj, point: p }; }
+                if (d < minDst) {
+                    minDst = d;
+                    closest = { data: obj.userData.presentAtom || obj.userData.atom, obj: obj, point: p };
+                }
             }
-            if (obj.children) obj.children.forEach(scanner);
+            if (obj.children) obj.children.forEach(scanProximity);
         };
-        scanner(mol.object3D);
-        if (closest) this.handleAtomHit(closest.data, closest.obj, closest.point);
+        scanProximity(mol.object3D);
+
+        if (closest) {
+            this.handleAtomHit(closest.data, closest.obj, closest.point);
+        } else if (this.hoveredAtom) {
+            // Clear if nothing nearby
+            this.onIntersectionCleared();
+        }
     },
 
     onIntersection: function (evt) {
