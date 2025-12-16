@@ -11,6 +11,18 @@ AFRAME.registerComponent('molecular-renderer', {
     init: function () {
         console.log('[MolecularRenderer] UPDATED: Initializing...');
 
+        // DYNAMIC INJECTION: Ensure Annotation System Loads
+        if (!document.querySelector('script[src*="annotation-system-v2.js"]')) {
+            console.log('[MolecularRenderer] Injecting Annotation System v2...');
+            var script = document.createElement('script');
+            script.src = 'js/aframe-components/annotation-system-v2.js?v=INJECTED_' + Date.now();
+            script.onload = () => console.log('[MolecularRenderer] Annotation Script INJECTED & LOADED');
+            script.onerror = () => console.error('[MolecularRenderer] Annotation Script INJECTION FAILED');
+            document.head.appendChild(script);
+        } else {
+            console.log('[MolecularRenderer] Annotation script already present in DOM.');
+        }
+
         // Hijack the global scene/parent for PDB loader
         PDB.scene = this.el.object3D;
 
