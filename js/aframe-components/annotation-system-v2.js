@@ -150,14 +150,14 @@ AFRAME.registerComponent('annotation-label', {
         this.borderEl.setAttribute('position', '0 0 -0.001');
         this.containerInfo.appendChild(this.borderEl);
 
-        // 2. Text
+        // 2. Text - SCALE DOWN for VR readability
         this.textEl = document.createElement('a-entity');
         this.textEl.setAttribute('text', {
             value: this.data.text,
             align: 'center',
             color: '#FFFFFF',
-            width: 1.2, // Slightly wider for better spacing
-            wrapCount: 22,
+            width: 0.4,
+            wrapCount: 30,
             baseline: 'center',
             anchor: 'center'
         });
@@ -179,19 +179,18 @@ AFRAME.registerComponent('annotation-label', {
     update: function () {
         this.textEl.setAttribute('text', 'value', this.data.text);
 
-        // Dynamic Sizing
+        // Dynamic Sizing based on text width property (0.4)
         var lines = this.data.text.split('\n');
         var lineCount = lines.length;
         var maxLen = 0;
         lines.forEach(l => { maxLen = Math.max(maxLen, l.length); });
 
-        // Estimate width: 0.05 per char roughly + padding
-        // Reduced multiplier slightly to fit tighter
-        var width = Math.max(0.2, maxLen * 0.022) + 0.08;
-        var height = (lineCount * 0.06) + 0.04; // 0.06 per line + padding
+        // For width=0.4 text, each char is roughly 0.013 units
+        var width = Math.max(0.08, maxLen * 0.013) + 0.03;
+        var height = (lineCount * 0.025) + 0.02;
 
         this.bgEl.setAttribute('geometry', { width: width, height: height });
-        this.borderEl.setAttribute('geometry', { width: width + 0.01, height: height + 0.01 });
+        this.borderEl.setAttribute('geometry', { width: width + 0.005, height: height + 0.005 });
 
         // Center text in box
         // A-Frame text is anchored center, so just placing bg at 0,0 is fine if text is at 0,0
@@ -230,42 +229,41 @@ AFRAME.registerComponent('annotation-mode-panel', {
     init: function () {
         // Container attached to controller
         this.panel = document.createElement('a-entity');
-        // Position: On top of the controller/wrist (Adjusted for Quest 2/Pro controllers)
-        this.panel.setAttribute('position', '0 0.04 0.15'); // Further back towards wrist
-        this.panel.setAttribute('rotation', '-30 0 0'); // Tilted up for viewing
+        this.panel.setAttribute('position', '0 0.06 0.08');
+        this.panel.setAttribute('rotation', '-45 0 0');
 
-        // Background
+        // Background - sized to fit text
         var bg = document.createElement('a-entity');
-        bg.setAttribute('geometry', { primitive: 'plane', width: 0.15, height: 0.12 }); // Vertical rectangle
-        bg.setAttribute('material', { color: '#111', opacity: 0.9, shader: 'flat', transparent: true });
+        bg.setAttribute('geometry', { primitive: 'plane', width: 0.08, height: 0.06 });
+        bg.setAttribute('material', { color: '#111', opacity: 0.95, shader: 'flat', transparent: true });
         this.panel.appendChild(bg);
 
         this.el.appendChild(this.panel);
 
-        // Mode Labels (Vertical List)
+        // Mode Labels (Vertical List) - much smaller scale
         this.labels = {};
         var modes = ['ATOM', 'RESIDUE', 'CHAIN'];
-        var startY = 0.03;
+        var startY = 0.015;
 
         modes.forEach((m, i) => {
             var label = document.createElement('a-text');
             label.setAttribute('value', m);
-            label.setAttribute('scale', '0.18 0.18 0.18');
+            label.setAttribute('scale', '0.08 0.08 0.08');
             label.setAttribute('color', '#555');
-            label.setAttribute('align', 'center'); // Center align
+            label.setAttribute('align', 'center');
             label.setAttribute('anchor', 'center');
-            label.setAttribute('position', `0 ${startY - (i * 0.03)} 0.01`); // Vertical stacking
+            label.setAttribute('position', `0 ${startY - (i * 0.015)} 0.01`);
             this.panel.appendChild(label);
             this.labels[m] = label;
         });
 
         // Header/Title
         var title = document.createElement('a-text');
-        title.setAttribute('value', 'MODE SELECT');
-        title.setAttribute('scale', '0.12 0.12 0.12');
-        title.setAttribute('color', '#AAA');
+        title.setAttribute('value', 'MODE');
+        title.setAttribute('scale', '0.06 0.06 0.06');
+        title.setAttribute('color', '#888');
         title.setAttribute('align', 'center');
-        title.setAttribute('position', '0 0.05 0.01');
+        title.setAttribute('position', '0 0.025 0.01');
         this.panel.appendChild(title);
     },
 
@@ -273,13 +271,11 @@ AFRAME.registerComponent('annotation-mode-panel', {
         var modeUpper = mode.toUpperCase();
         for (var m in this.labels) {
             if (m === modeUpper) {
-                // Active State
                 this.labels[m].setAttribute('color', '#00FF00');
-                this.labels[m].setAttribute('scale', '0.22 0.22 0.22');
+                this.labels[m].setAttribute('scale', '0.10 0.10 0.10');
             } else {
-                // Inactive State
                 this.labels[m].setAttribute('color', '#444');
-                this.labels[m].setAttribute('scale', '0.18 0.18 0.18');
+                this.labels[m].setAttribute('scale', '0.08 0.08 0.08');
             }
         }
     }
