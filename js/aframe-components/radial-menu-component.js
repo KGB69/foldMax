@@ -550,43 +550,23 @@ AFRAME.registerComponent('radial-menu', {
     },
 
     drawStructureTab: function (ctx, startY) {
-        var btnW = 260;
-        var btnH = 80;
+        var btnW = 400;
+        var btnH = 90;
         var gap = 30;
         var x = 80;
         var y = startY;
 
         this.drawSectionTitle(ctx, 'Representation', x, y);
-        y += 70;
+        y += 80;
 
-        // Row 1
-        var modes = [
-            { id: 'sphere', label: 'Sphere', mode: 3 },
-            { id: 'stick', label: 'Stick', mode: 2 },
-            { id: 'ballrod', label: 'Ball & Rod', mode: 51 }
-        ];
+        // Only show working modes: Cartoon (13) and Ribbon (10)
+        // Sphere (3), Stick (2), Ball+Rod modes generate extremely heavy meshes
 
-        for (var i = 0; i < modes.length; i++) {
-            var xPos = x + i * (btnW + gap);
-            var modeValue = modes[i].mode;
-            // Use arrow function to preserve 'this' context
-            this.registerButton(modes[i].id, xPos, y, btnW, btnH, ((mode) => () => this.changeStructureMode(mode))(modeValue));
-            this.drawButton(ctx, modes[i].label, xPos, y, btnW, btnH, 'rgba(100, 200, 100, 0.4)', 32);
-        }
-
-        y += btnH + gap + 40;
-        this.drawSectionTitle(ctx, 'Cartoon/Ribbon', x, y);
-        y += 70;
-
-        // Row 2
         this.registerButton('cartoon', x, y, btnW, btnH, () => this.changeStructureMode(13));
-        this.drawButton(ctx, 'Cartoon', x, y, btnW, btnH, 'rgba(100, 200, 100, 0.4)', 32);
+        this.drawButton(ctx, '🎭 Cartoon', x, y, btnW, btnH, 'rgba(100, 200, 100, 0.5)', 36);
 
         this.registerButton('ribbon', x + btnW + gap, y, btnW, btnH, () => this.changeStructureMode(10));
-        this.drawButton(ctx, 'Ribbon', x + btnW + gap, y, btnW, btnH, 'rgba(100, 200, 100, 0.4)', 32);
-
-        this.registerButton('tube', x + (btnW + gap) * 2, y, btnW, btnH, () => this.changeStructureMode(12));
-        this.drawButton(ctx, 'Tube', x + (btnW + gap) * 2, y, btnW, btnH, 'rgba(100, 200, 100, 0.4)', 32);
+        this.drawButton(ctx, '🎀 Ribbon', x + btnW + gap, y, btnW, btnH, 'rgba(100, 200, 100, 0.5)', 36);
     },
 
     drawLigandTab: function (ctx, startY) {
