@@ -1164,10 +1164,38 @@ AFRAME.registerComponent('radial-menu', {
         try {
             PDB.config.mainMode = mode;
             PDB.controller.refreshGeometryByMode(mode);
+
+            // RE-ATTACH GROUPS TO A-FRAME ENTITY
+            // After refreshGeometryByMode, the Groups may be recreated but not attached
+            this.reattachGroupsToAFrame();
+
             this.hide();
         } catch (e) {
             console.error('[RadialMenu] Error in changeStructureMode:', e);
         }
+    },
+
+    // Helper: Re-attach PDB.GROUP objects to the A-Frame molecule container
+    reattachGroupsToAFrame: function () {
+        var molContainer = document.querySelector('#molecule-container');
+        if (!molContainer) {
+            console.warn('[RadialMenu] molecule-container not found for reattach');
+            return;
+        }
+
+        var object3D = molContainer.object3D;
+        if (!object3D) return;
+
+        for (var i = 0; i < PDB.GROUP_COUNT; i++) {
+            if (PDB.GROUP[i]) {
+                // Check if already attached
+                if (PDB.GROUP[i].parent !== object3D) {
+                    console.log('[RadialMenu] Reattaching GROUP[' + i + '] to molecule-container');
+                    object3D.add(PDB.GROUP[i]);
+                }
+            }
+        }
+        console.log('[RadialMenu] Groups reattached to A-Frame');
     },
 
     changeLigandMode: function (mode) {
