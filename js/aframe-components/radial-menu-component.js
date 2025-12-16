@@ -1146,7 +1146,19 @@ AFRAME.registerComponent('radial-menu', {
         console.log('[RadialMenu] Changing structure mode to:', mode);
         try {
             PDB.config.mainMode = mode;
-            PDB.controller.refreshGeometryByMode(mode);
+
+            // SPECIAL CASE: Ball+Rod mode (6) uses VR-optimized renderer
+            // This uses merged geometry for 100x fewer draw calls
+            if (mode === 6 && window.VROptimizedRenderer) {
+                console.log('[RadialMenu] Using VR-optimized Ball+Rod renderer');
+                // Clear existing geometry first
+                PDB.controller.clear();
+                // Use optimized merged geometry renderer
+                window.VROptimizedRenderer.showBallRodOptimized();
+            } else {
+                // Standard mode change
+                PDB.controller.refreshGeometryByMode(mode);
+            }
 
             // RE-ATTACH GROUPS TO A-FRAME ENTITY
             // After refreshGeometryByMode, the Groups may be recreated but not attached
