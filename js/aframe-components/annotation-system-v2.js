@@ -236,8 +236,7 @@ AFRAME.registerComponent('annotation-raycaster', {
         console.log('[AnnotationRaycaster] Init');
         this.onTriggerDown = this.onTriggerDown.bind(this);
         this.onGripDown = this.onGripDown.bind(this);
-        this.onYButtonDown = this.onYButtonDown.bind(this); // Debug Dump
-        this.onXButtonDown = this.onXButtonDown.bind(this); // Cycle Mode
+        this.onYButtonDown = this.onYButtonDown.bind(this); // Cycle Mode (Moved from X)
         this.onIntersection = this.onIntersection.bind(this);
         this.onIntersectionCleared = this.onIntersectionCleared.bind(this);
         this.tick = AFRAME.utils.throttleTick(this.tick.bind(this), 100); // 10Hz Check
@@ -245,7 +244,6 @@ AFRAME.registerComponent('annotation-raycaster', {
         this.el.addEventListener('triggerdown', this.onTriggerDown);
         this.el.addEventListener('gripdown', this.onGripDown);
         this.el.addEventListener('ybuttondown', this.onYButtonDown);
-        this.el.addEventListener('xbuttondown', this.onXButtonDown);
         this.el.addEventListener('raycaster-intersection', this.onIntersection);
         this.el.addEventListener('raycaster-intersection-cleared', this.onIntersectionCleared);
 
@@ -277,7 +275,6 @@ AFRAME.registerComponent('annotation-raycaster', {
         this.el.removeEventListener('triggerdown', this.onTriggerDown);
         this.el.removeEventListener('gripdown', this.onGripDown);
         this.el.removeEventListener('ybuttondown', this.onYButtonDown);
-        this.el.removeEventListener('xbuttondown', this.onXButtonDown);
         this.el.removeEventListener('raycaster-intersection', this.onIntersection);
         this.el.removeEventListener('raycaster-intersection-cleared', this.onIntersectionCleared);
         if (this.previewEl && this.previewEl.parentNode) this.previewEl.parentNode.removeChild(this.previewEl);
@@ -285,8 +282,8 @@ AFRAME.registerComponent('annotation-raycaster', {
         if (this.modeTextEl && this.modeTextEl.parentNode) this.modeTextEl.parentNode.removeChild(this.modeTextEl);
     },
 
-    onXButtonDown: function () {
-        // Cycle Mode
+    onYButtonDown: function () {
+        // Cycle Mode (Previously on X)
         this.currentModeIndex = (this.currentModeIndex + 1) % this.modes.length;
         this.currentMode = this.modes[this.currentModeIndex];
 
