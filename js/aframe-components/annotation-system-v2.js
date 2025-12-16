@@ -299,7 +299,7 @@ AFRAME.registerComponent('annotation-raycaster', {
         this.onYButtonDown = this.onYButtonDown.bind(this); // Cycle Mode (Moved from X)
         this.onIntersection = this.onIntersection.bind(this);
         this.onIntersectionCleared = this.onIntersectionCleared.bind(this);
-        this.tick = AFRAME.utils.throttleTick(this.tick.bind(this), 100); // 10Hz Check
+        this.tick = AFRAME.utils.throttleTick(this.tick.bind(this), 200); // 5Hz Check (was 10Hz - better for VR perf)
 
         this.el.addEventListener('triggerdown', this.onTriggerDown);
         this.el.addEventListener('gripdown', this.onGripDown);
@@ -366,12 +366,16 @@ AFRAME.registerComponent('annotation-raycaster', {
         var mol = document.querySelector('#molecule-container');
         if (!mol || !mol.object3D) return;
 
-        // Get controller world position and direction
-        var controllerPos = new THREE.Vector3();
-        var controllerDir = new THREE.Vector3(0, 0, -1); // Forward in local space
+        // PERF: Use pooled/cached objects to reduce GC pressure
+        if (!this._controllerPos) this._controllerPos = new THREE.Vector3();
+        if (!this._controllerDir) this._controllerDir = new THREE.Vector3();
+        if (!this._quat) this._quat = new THREE.Quaternion();
+
+        var controllerPos = this._controllerPos;
+        var controllerDir = this._controllerDir.set(0, 0, -1); // Forward in local space
 
         this.el.object3D.getWorldPosition(controllerPos);
-        this.el.object3D.getWorldQuaternion(this._quat || (this._quat = new THREE.Quaternion()));
+        this.el.object3D.getWorldQuaternion(this._quat);
         controllerDir.applyQuaternion(this._quat);
 
         // Create raycaster

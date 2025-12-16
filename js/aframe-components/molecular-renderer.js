@@ -46,6 +46,32 @@ AFRAME.registerComponent('molecular-renderer', {
             return;
         }
 
+        // ========== VR PERFORMANCE OPTIMIZATIONS ==========
+        // Force low-quality geometry for Quest 3 performance
+        console.log('[MolecularRenderer] Applying VR performance settings...');
+
+        // Set structure size level to low (reduces polygon count by ~75%)
+        PDB.structureSizeLevel = 3; // 0=auto, 3=low quality
+
+        // Override geometry config with VR-optimized low-poly settings
+        if (typeof w3m !== 'undefined' && w3m.config && w3m.config.geom) {
+            w3m.config.geom.sphere_seg = 6;      // Default: 20
+            w3m.config.geom.stick_seg = 4;       // Default: 12
+            w3m.config.geom.tube_seg = 4;        // Default: 15
+            console.log('[MolecularRenderer] w3m geometry reduced for VR');
+        }
+
+        // Use CONFIG_LOW settings if available
+        if (PDB.CONFIG_LOW) {
+            // Apply low-quality settings globally
+            PDB.CONFIG_LOW.sphere_width = 6;     // Original: 8
+            PDB.CONFIG_LOW.sphere_height = 4;    // Original: 4
+            PDB.CONFIG_LOW.stick_sphere_w = 4;   // Original: 4
+            PDB.CONFIG_LOW.ballrod_sphere_w = 4; // Original: 4
+            PDB.CONFIG_LOW.tubesegment = 4;      // Original: 5
+        }
+        // ====================================================
+
         // Initialize PDB config
         PDB.config.mainMode = PDB.CARTOON_SSE;
         PDB.config.hetMode = PDB.HET_STICK;
