@@ -4,7 +4,6 @@ FROM php:8.2-fpm
 RUN apt-get update && apt-get install -y \
     nginx \
     supervisor \
-    gettext-base \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy application files
@@ -16,9 +15,9 @@ RUN chown -R www-data:www-data /var/www/html
 # Configure PHP-FPM to listen on TCP
 RUN echo "listen = 127.0.0.1:9000" >> /usr/local/etc/php-fpm.d/zz-custom.conf
 
-# Create nginx configuration template
+# Create nginx configuration (without variable substitution)
 RUN echo 'server {\n\
-    listen ${PORT:-80};\n\
+    listen 80;\n\
     root /var/www/html;\n\
     index index.html index.php;\n\
     \n\
@@ -38,7 +37,7 @@ RUN echo 'server {\n\
     add_header Access-Control-Allow-Methods "*" always;\n\
     add_header Access-Control-Allow-Headers "Origin, X-Requested-With, Content-Type, Accept, Authorization" always;\n\
     server_tokens off;\n\
-    }' > /etc/nginx/sites-available/default.template
+    }' > /etc/nginx/sites-available/default
 
 # Create supervisor configuration
 RUN echo '[supervisord]\n\
@@ -65,12 +64,6 @@ RUN echo '[supervisord]\n\
     stderr_logfile=/dev/stderr\n\
     stderr_logfile_maxbytes=0' > /etc/supervisor/conf.d/supervisord.conf
 
-# Create start script that handles PORT env variable
-RUN echo '#!/bin/bash\n\
-    export PORT=${PORT:-80}\n\
-    envsubst "\$PORT" < /etc/nginx/sites-available/default.template > /etc/nginx/sites-available/default\n\
-    exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf' > /start.sh && chmod +x /start.sh
-
 EXPOSE 80
 
-CMD ["/start.sh"]
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
