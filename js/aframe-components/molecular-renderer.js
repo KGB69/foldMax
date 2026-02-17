@@ -150,7 +150,8 @@ AFRAME.registerComponent('molecular-renderer', {
         }
 
         // Use our own server-side proxy (no CORS issues!)
-        var pdbUrl = '/api/pdb-proxy.php?pdb=' + encodeURIComponent(pdbId);
+        // Build absolute URL using window.location.origin
+        var pdbUrl = window.location.origin + '/api/pdb-proxy.php?pdb=' + encodeURIComponent(pdbId);
 
         console.log('[MolecularRenderer] Loading from proxy:', pdbUrl);
 
