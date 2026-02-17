@@ -15,30 +15,6 @@ RUN chown -R www-data:www-data /var/www/html
 # Configure PHP-FPM to listen on TCP
 RUN echo "listen = 127.0.0.1:9000" >> /usr/local/etc/php-fpm.d/zz-custom.conf
 
-# Create nginx configuration (without variable substitution)
-RUN echo 'server {\n\
-    listen 80;\n\
-    root /var/www/html;\n\
-    index index.html index.php;\n\
-    \n\
-    location / {\n\
-    try_files $uri $uri/ /index.html;\n\
-    }\n\
-    \n\
-    location ~ \.php$ {\n\
-    include fastcgi_params;\n\
-    fastcgi_pass 127.0.0.1:9000;\n\
-    fastcgi_index index.php;\n\
-    fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;\n\
-    }\n\
-    \n\
-    add_header X-Frame-Options "SAMEORIGIN" always;\n\
-    add_header Access-Control-Allow-Origin "*" always;\n\
-    add_header Access-Control-Allow-Methods "*" always;\n\
-    add_header Access-Control-Allow-Headers "Origin, X-Requested-With, Content-Type, Accept, Authorization" always;\n\
-    server_tokens off;\n\
-    }' > /etc/nginx/sites-available/default
-
 # Create supervisor configuration
 RUN echo '[supervisord]\n\
     nodaemon=true\n\
@@ -64,6 +40,44 @@ RUN echo '[supervisord]\n\
     stderr_logfile=/dev/stderr\n\
     stderr_logfile_maxbytes=0' > /etc/supervisor/conf.d/supervisord.conf
 
+# Create startup script
+RUN echo '#!/bin/bash\n\
+    set -e\n\
+    \n\
+    # Use Railway PORT or default to 80\n\
+    PORT=${PORT:-80}\n\
+    \n\
+    # Generate nginx config\n\
+    cat > /etc/nginx/sites-available/default << EOF\n\
+    server {\n\
+    listen $PORT;\n\
+    root /var/www/html;\n\
+    index index.html index.php;\n\
+    \n\
+    location / {\n\
+    try_files \$uri \$uri/ /index.html;\n\
+    }\n\
+    \n\
+    location ~ \\.php$ {\n\
+    include fastcgi_params;\n\
+    fastcgi_pass 127.0.0.1:9000;\n\
+    fastcgi_index index.php;\n\
+    fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;\n\
+    }\n\
+    \n\
+    add_header X-Frame-Options "SAMEORIGIN" always;\n\
+    add_header Access-Control-Allow-Origin "*" always;\n\
+    add_header Access-Control-Allow-Methods "*" always;\n\
+    add_header Access-Control-Allow-Headers "Origin, X-Requested-With, Content-Type, Accept, Authorization" always;\n\
+    server_tokens off;\n\
+    }\n\
+    EOF\n\
+    \n\
+    echo "Nginx configured to listen on port $PORT"\n\
+    \n\
+    # Start supervisord\n\
+    exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf' > /start.sh && chmod +x /start.sh
+
 EXPOSE 80
 
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
+CMD ["/start.sh"]
