@@ -1,9 +1,11 @@
 FROM php:8.2-apache
 
-# Fix Apache MPM configuration more explicitly
-# Remove all MPM modules first, then enable only mpm_prefork
-RUN a2dismod mpm_event mpm_worker || true && \
-    a2enmod mpm_prefork
+# Aggressive fix for Apache MPM configuration
+# Directly remove conflicting MPM module symlinks
+RUN rm -f /etc/apache2/mods-enabled/mpm_event.* && \
+    rm -f /etc/apache2/mods-enabled/mpm_worker.* && \
+    ln -sf /etc/apache2/mods-available/mpm_prefork.load /etc/apache2/mods-enabled/mpm_prefork.load && \
+    ln -sf /etc/apache2/mods-available/mpm_prefork.conf /etc/apache2/mods-enabled/mpm_prefork.conf
 
 # Enable mod_rewrite for Apache
 RUN a2enmod rewrite headers
