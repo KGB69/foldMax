@@ -149,8 +149,9 @@ AFRAME.registerComponent('molecular-renderer', {
             this.el.object3D.remove(child);
         }
 
-        // Use CORS proxy to avoid localhost issues
-        var pdbUrl = 'https://corsproxy.io/?' + encodeURIComponent('https://files.rcsb.org/view/' + pdbId + '.pdb');
+        // Use CORS proxy to avoid CORS issues
+        // allorigins.win is a reliable free CORS proxy
+        var pdbUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent('https://files.rcsb.org/view/' + pdbId + '.pdb');
 
         console.log('[MolecularRenderer] Loading from proxy:', pdbUrl);
 
