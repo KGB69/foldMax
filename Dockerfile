@@ -4,6 +4,7 @@ FROM php:8.2-fpm
 RUN apt-get update && apt-get install -y \
     nginx \
     supervisor \
+    gettext-base \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy application files
