@@ -24,6 +24,11 @@ AFRAME.registerComponent('radial-menu', {
         this.currentInput = '';
         this.maxInputLength = 4;
 
+        // Floor collision prevention
+        this.floorLevel = 0.7; // Match player height
+        this.menuHeightOffset = 1.5; // Half of menu height (3m plane / 2)
+        this.minMenuY = this.floorLevel + this.menuHeightOffset;
+
         // Calibration Mode
         this.isCalibrationMode = false;
 
@@ -766,6 +771,9 @@ AFRAME.registerComponent('radial-menu', {
     tick: function () {
         if (!this.isOpen) return;
 
+        // HEAD TRACKING: Update menu position to follow head movements
+        this.updateMenuPosition();
+
         // Raycaster intersection for HOVER effect
         var els = this.el.sceneEl.querySelectorAll('[laser-controls], [cursor]');
         var foundUV = null;
@@ -1283,20 +1291,27 @@ AFRAME.registerComponent('radial-menu', {
     // Show/hide/toggle
     updateMenuPosition: function () {
         var camera = this.el.sceneEl.camera;
-        if (camera) {
-            var dir = new THREE.Vector3();
-            camera.getWorldDirection(dir);
+        if (!camera) return;
 
-            var cameraWorldPos = new THREE.Vector3();
-            camera.getWorldPosition(cameraWorldPos); // Get camera's world position
+        var dir = new THREE.Vector3();
+        camera.getWorldDirection(dir);
 
-            var menuPos = new THREE.Vector3();
-            menuPos.copy(cameraWorldPos);
-            menuPos.add(dir.multiplyScalar(this.menuDistance));
+        var cameraWorldPos = new THREE.Vector3();
+        camera.getWorldPosition(cameraWorldPos);
 
-            this.mesh.position.copy(menuPos);
-            this.mesh.lookAt(cameraWorldPos); // Look at world position, not local
+        var menuPos = new THREE.Vector3();
+        menuPos.copy(cameraWorldPos);
+        menuPos.add(dir.multiplyScalar(this.menuDistance));
+
+        // FLOOR COLLISION PREVENTION: Clamp menu position above floor
+        if (menuPos.y < this.minMenuY) {
+            menuPos.y = this.minMenuY;
+            // Optional: Log when clamping occurs
+            // console.log('[RadialMenu] Floor clamp active - Y:', menuPos.y.toFixed(2));
         }
+
+        this.mesh.position.copy(menuPos);
+        this.mesh.lookAt(cameraWorldPos);
     },
 
     show: function () {
