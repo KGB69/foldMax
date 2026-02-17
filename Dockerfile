@@ -11,6 +11,10 @@ COPY . /var/www/html/
 # Set permissions
 RUN chown -R www-data:www-data /var/www/html
 
+# Configure PHP-FPM to listen on TCP port 9000 instead of socket
+RUN sed -i 's|listen = /run/php/php-fpm.sock|listen = 9000|g' /usr/local/etc/php-fpm.d/www.conf || \
+    echo "listen = 9000" >> /usr/local/etc/php-fpm.d/www.conf
+
 # Create nginx configuration
 RUN echo 'server {\n\
     listen 80 default_server;\n\
@@ -38,10 +42,14 @@ RUN echo 'server {\n\
     server_tokens off;\n\
     }' > /etc/nginx/sites-available/default
 
-# Create startup script
+# Create startup script with proper service startup
 RUN echo '#!/bin/bash\n\
-    php-fpm -D\n\
-    nginx -g "daemon off;"' > /start.sh && chmod +x /start.sh
+    set -e\n\
+    echo "Starting PHP-FPM..."\n\
+    php-fpm &\n\
+    sleep 3\n\
+    echo "Starting nginx..."\n\
+    exec nginx -g "daemon off;"' > /start.sh && chmod +x /start.sh
 
 EXPOSE 80
 
