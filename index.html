@@ -101,14 +101,26 @@
             <!-- Navigation menu -->
             <nav id="splash-menu">
 
-                <!-- Enter Simulation -->
-                <button class="splash-btn primary" id="btn-enter-sim">
-                    <div class="splash-btn-icon">⬡</div>
+                <!-- Enter VR -->
+                <button class="splash-btn primary" id="btn-enter-vr">
+                    <div class="splash-btn-icon">&#x2B21;</div>
                     <div class="splash-btn-text">
-                        <span class="splash-btn-label">Enter Simulation</span>
-                        <span class="splash-btn-desc">Launch the VR molecular environment</span>
+                        <span class="splash-btn-label">Enter VR</span>
+                        <span class="splash-btn-desc">Full immersive headset mode</span>
                     </div>
-                    <span class="splash-btn-arrow">›</span>
+                    <span class="splash-btn-arrow">&#x203A;</span>
+                </button>
+
+                <!-- Enter AR -->
+                <button class="splash-btn primary" id="btn-enter-ar"
+                    style="background:linear-gradient(135deg,rgba(80,60,220,0.25),rgba(0,140,255,0.2));border-color:rgba(100,80,255,0.4);">
+                    <div class="splash-btn-icon"
+                        style="background:rgba(80,60,220,0.15);border-color:rgba(100,80,255,0.2);">&#x25C8;</div>
+                    <div class="splash-btn-text">
+                        <span class="splash-btn-label">Enter AR</span>
+                        <span class="splash-btn-desc">Passthrough mixed reality (Quest 3)</span>
+                    </div>
+                    <span class="splash-btn-arrow">&#x203A;</span>
                 </button>
 
                 <!-- Settings -->
@@ -148,7 +160,8 @@
         <p id="splash-footer">Quest 3 · WebXR · A-Frame 1.4</p>
     </div>
     <!-- END SPLASH SCREEN -->
-    <a-scene background="color: #000">
+    <!-- A-Frame canvas hidden until splash dismissed -->
+    <a-scene id="main-scene" background="color: #000" style="visibility:hidden;">
         <!-- Procedural Environment -->
         <a-entity environment-loader="timeOfDay: 0.35"></a-entity>
 
@@ -212,49 +225,75 @@
                 container.appendChild(p);
             }
 
-            /* ---- Dismiss splash ---- */
-            function dismissSplash() {
+            /* ---- Core: enter immersive mode then dismiss splash ---- */
+            function enterImmersive(mode) {
                 var splash = document.getElementById('splash-screen');
+                var scene = document.getElementById('main-scene');
+
+                // Reveal the canvas immediately so A-Frame can render in XR
+                if (scene) scene.style.visibility = 'visible';
+
+                // Wait for A-Frame to be ready, then request XR session
+                function tryEnter() {
+                    if (typeof AFRAME === 'undefined' || !AFRAME.scenes || !AFRAME.scenes[0]) {
+                        setTimeout(tryEnter, 100);
+                        return;
+                    }
+                    var aScene = AFRAME.scenes[0];
+                    try {
+                        if (mode === 'ar') {
+                            aScene.enterAR();
+                        } else {
+                            aScene.enterVR();
+                        }
+                    } catch (e) {
+                        console.warn('[Splash] enterVR/AR failed:', e);
+                    }
+                }
+                tryEnter();
+
+                // Fade out and remove splash
                 splash.classList.add('hidden');
-                // Remove from DOM after fade completes
                 setTimeout(function () {
                     if (splash.parentNode) splash.parentNode.removeChild(splash);
                 }, 900);
             }
 
-            /* ---- Enter Simulation ---- */
-            document.getElementById('btn-enter-sim').addEventListener('click', function () {
-                dismissSplash();
+            /* ---- Button handlers ---- */
+            document.getElementById('btn-enter-vr').addEventListener('click', function () {
+                enterImmersive('vr');
+            });
+
+            document.getElementById('btn-enter-ar').addEventListener('click', function () {
+                enterImmersive('ar');
             });
 
             /* ---- Settings (stub) ---- */
             document.getElementById('btn-settings').addEventListener('click', function () {
-                // TODO: open settings panel
                 alert('Settings panel coming soon!\n\nFor now, use the in-VR radial menu (B button) to adjust settings.');
             });
 
             /* ---- Help (stub) ---- */
             document.getElementById('btn-help').addEventListener('click', function () {
-                // TODO: open help panel
                 alert(
                     'FoldMax VR Controls\n' +
-                    '─────────────────\n' +
-                    'B button  →  Open radial menu\n' +
-                    'Left grip  →  Move menu closer\n' +
-                    'Right grip →  Move menu farther\n' +
-                    'Trigger    →  Select / click\n' +
-                    'Thumbstick →  Move around\n\n' +
+                    '\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n' +
+                    'B button   \u2192  Open radial menu\n' +
+                    'Left grip  \u2192  Move menu closer\n' +
+                    'Right grip \u2192  Move menu farther\n' +
+                    'Trigger    \u2192  Select / click\n' +
+                    'Thumbstick \u2192  Move around\n\n' +
                     'Desktop:\n' +
-                    'M key  →  Toggle menu\n' +
-                    'WASD   →  Move\n' +
-                    'Mouse  →  Look around'
+                    'M key  \u2192  Toggle menu\n' +
+                    'WASD   \u2192  Move\n' +
+                    'Mouse  \u2192  Look around'
                 );
             });
 
-            /* ---- Keyboard shortcut: Enter key ---- */
+            /* ---- Keyboard shortcut: Enter = VR ---- */
             document.addEventListener('keydown', function (e) {
                 if (e.key === 'Enter' && document.getElementById('splash-screen')) {
-                    dismissSplash();
+                    enterImmersive('vr');
                 }
             });
 
