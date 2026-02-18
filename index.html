@@ -215,7 +215,7 @@
     </div>
     <!-- END MAIN MENU -->
     <!-- A-Frame canvas hidden until landing dismissed -->
-    <a-scene id="main-scene" background="color: #020810" style="visibility:hidden;">
+    <a-scene id="main-scene" style="visibility:hidden;">
         <!-- Procedural Environment -->
         <a-entity environment-loader="timeOfDay: 0.35"></a-entity>
 
@@ -235,31 +235,6 @@
 
         <!-- VR Main Menu (3D panel, auto-shows on enter-vr) -->
         <a-entity id="vr-main-menu" vr-main-menu class="clickable"></a-entity>
-
-        <!-- VR Menu Environment: dark sci-fi space matching splash aesthetic -->
-        <!-- Deep space sky -->
-        <a-sky color="#020810"></a-sky>
-
-        <!-- Teal grid floor -->
-        <a-entity geometry="primitive: plane; width: 80; height: 80" material="color: #020810; opacity: 1; side: double"
-            position="0 -0.05 0" rotation="-90 0 0">
-        </a-entity>
-        <a-entity geometry="primitive: plane; width: 80; height: 80"
-            material="src: #grid-tex; transparent: true; opacity: 0.18; repeat: 40 40; side: double"
-            position="0 -0.04 0" rotation="-90 0 0">
-        </a-entity>
-
-        <!-- Radial glow planes (mimic splash BG gradients) -->
-        <!-- Top teal glow -->
-        <a-entity geometry="primitive: plane; width: 30; height: 20"
-            material="color: #00c8b4; transparent: true; opacity: 0.06; side: double; shader: flat" position="0 8 -10"
-            rotation="-30 0 0">
-        </a-entity>
-        <!-- Bottom-right purple glow -->
-        <a-entity geometry="primitive: plane; width: 20; height: 20"
-            material="color: #503cdc; transparent: true; opacity: 0.05; side: double; shader: flat" position="8 2 -12"
-            rotation="-10 -20 0">
-        </a-entity>
 
         <!-- Radial Menu -->
         <a-entity id="radial-menu" radial-menu class="clickable"></a-entity>
