@@ -55,14 +55,14 @@ AFRAME.registerComponent('radial-menu', {
             transparent: true,
             side: THREE.DoubleSide,
             alphaTest: 0.1,
-            depthTest: true, // Enable depth testing so lasers appear correctly
-            depthWrite: true
+            depthTest: false,  // ALWAYS render on top — prevents clipping through PDB model
+            depthWrite: false  // Don't write to depth buffer so scene geometry behind is unaffected
         });
 
         var geometry = new THREE.PlaneGeometry(3, 3);
         this.mesh = new THREE.Mesh(geometry, material);
         this.mesh.visible = false;
-        this.mesh.renderOrder = 100; // Lower order so lasers render on top
+        this.mesh.renderOrder = 999; // Render last, always on top of all 3D geometry
         this.mesh.userData = { isRadialMenu: true };
         this.mesh.classList = ['clickable']; // Enable VR raycaster interaction
 
