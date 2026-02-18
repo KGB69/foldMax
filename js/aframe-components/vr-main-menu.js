@@ -29,9 +29,10 @@ AFRAME.registerComponent('vr-main-menu', {
         this.material = new THREE.MeshBasicMaterial({
             map: this.texture,
             transparent: true,
+            alphaTest: 0.01,   // Transparent pixels don't render — no white background
             side: THREE.DoubleSide,
             depthTest: true,   // Participate in depth so menu occludes controllers
-            depthWrite: true   // Write depth so nothing renders over the menu
+            depthWrite: false  // Don't write depth (alphaTest handles occlusion for opaque parts)
         });
 
         // Geometry — portrait panel, 2.0m wide × 2.5m tall
@@ -174,22 +175,34 @@ AFRAME.registerComponent('vr-main-menu', {
         console.log('[VRMainMenu] Hidden');
     },
 
-    // ── Tick: update hover highlight ──────────────────────────────────────────
+    // ── Tick: poll raycasters for hover UV ───────────────────────────────────
     tick: function () {
-        if (!this.isVisible || !this._raycaster) return;
+        if (!this.isVisible) return;
 
-        var raycaster = this._raycaster.components.raycaster;
-        if (!raycaster) return;
+        // Poll both hand raycasters for intersection with our mesh
+        var hands = ['left-hand', 'right-hand'];
+        var foundUV = null;
 
-        var intersections = raycaster.intersections;
-        if (!intersections || !intersections.length) return;
+        for (var h = 0; h < hands.length; h++) {
+            var handEl = document.getElementById(hands[h]);
+            if (!handEl) continue;
+            var rc = handEl.components && handEl.components.raycaster;
+            if (!rc || !rc.intersections || !rc.intersections.length) continue;
 
-        for (var i = 0; i < intersections.length; i++) {
-            if (intersections[i].object === this.mesh) {
-                var uv = intersections[i].uv;
-                if (uv) this.updateHover(uv);
-                break;
+            for (var i = 0; i < rc.intersections.length; i++) {
+                if (rc.intersections[i].object === this.mesh && rc.intersections[i].uv) {
+                    foundUV = rc.intersections[i].uv;
+                    break;
+                }
             }
+            if (foundUV) break;
+        }
+
+        if (foundUV) {
+            this.updateHover(foundUV);
+        } else if (this.hovered !== -1) {
+            this.hovered = -1;
+            this.draw();
         }
     },
 
