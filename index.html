@@ -56,9 +56,63 @@
 <body>
 
     <!-- =============================================
-         SPLASH SCREEN
+         LANDING SCREEN (shown first)
          ============================================= -->
-    <div id="splash-screen">
+    <div id="landing-screen">
+        <div id="splash-bg"></div>
+        <div id="splash-particles" id="landing-particles"></div>
+
+        <div id="landing-card">
+            <span id="splash-version">v0.1 Alpha</span>
+
+            <!-- Logo -->
+            <div id="splash-logo-area">
+                <div id="splash-logo-inner">
+                    <svg viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="26" cy="26" r="6" fill="rgba(0,220,200,0.9)" />
+                        <circle cx="10" cy="16" r="4" fill="rgba(0,180,255,0.8)" />
+                        <circle cx="42" cy="16" r="4" fill="rgba(0,180,255,0.8)" />
+                        <circle cx="10" cy="36" r="4" fill="rgba(80,120,255,0.8)" />
+                        <circle cx="42" cy="36" r="4" fill="rgba(80,120,255,0.8)" />
+                        <circle cx="26" cy="6" r="3" fill="rgba(0,220,200,0.6)" />
+                        <circle cx="26" cy="46" r="3" fill="rgba(0,220,200,0.6)" />
+                        <line x1="26" y1="20" x2="13" y2="18" stroke="rgba(0,220,200,0.4)" stroke-width="1.5" />
+                        <line x1="26" y1="20" x2="39" y2="18" stroke="rgba(0,220,200,0.4)" stroke-width="1.5" />
+                        <line x1="26" y1="32" x2="13" y2="34" stroke="rgba(0,220,200,0.4)" stroke-width="1.5" />
+                        <line x1="26" y1="32" x2="39" y2="34" stroke="rgba(0,220,200,0.4)" stroke-width="1.5" />
+                        <line x1="26" y1="20" x2="26" y2="9" stroke="rgba(0,220,200,0.4)" stroke-width="1.5" />
+                        <line x1="26" y1="32" x2="26" y2="43" stroke="rgba(0,220,200,0.4)" stroke-width="1.5" />
+                    </svg>
+                    <span>FoldVR</span>
+                </div>
+            </div>
+
+            <h1 id="splash-title">FoldVR</h1>
+            <p id="splash-subtitle">Molecular Visualization</p>
+
+            <div class="splash-divider"></div>
+
+            <!-- Single CTA -->
+            <button class="splash-btn primary" id="btn-start-program"
+                style="justify-content:center;font-size:17px;padding:18px 24px;">
+                <span style="font-size:20px;">&#x2B21;</span>
+                &nbsp;&nbsp;Start Program
+            </button>
+
+            <p
+                style="margin-top:16px;font-size:11px;color:rgba(255,255,255,0.2);letter-spacing:.08em;text-align:center;">
+                Activates immersive VR experience
+            </p>
+        </div>
+
+        <p id="splash-footer">FoldVR &middot; Quest 3 &middot; WebXR &middot; A-Frame 1.4</p>
+    </div>
+    <!-- END LANDING SCREEN -->
+
+    <!-- =============================================
+         MAIN MENU (shown after landing, inside VR)
+         ============================================= -->
+    <div id="splash-screen" style="display:none;">
         <!-- Animated background -->
         <div id="splash-bg"></div>
 
@@ -158,7 +212,7 @@
 
         <p id="splash-footer">FoldVR &middot; Quest 3 &middot; WebXR &middot; A-Frame 1.4</p>
     </div>
-    <!-- END SPLASH SCREEN -->
+    <!-- END MAIN MENU -->
     <!-- A-Frame canvas hidden until splash dismissed -->
     <a-scene id="main-scene" background="color: #000" style="visibility:hidden;">
         <!-- Procedural Environment -->
@@ -204,68 +258,99 @@
         (function () {
             'use strict';
 
-            /* ---- Floating particles ---- */
-            var container = document.getElementById('splash-particles');
+            /* ---- Spawn particles into landing screen ---- */
             var COLORS = ['rgba(0,220,200,', 'rgba(0,160,255,', 'rgba(80,120,255,'];
-            for (var i = 0; i < 28; i++) {
-                var p = document.createElement('div');
-                p.className = 'splash-particle';
-                var size = Math.random() * 4 + 2;
-                var color = COLORS[Math.floor(Math.random() * COLORS.length)];
-                p.style.cssText = [
-                    'width:' + size + 'px',
-                    'height:' + size + 'px',
-                    'left:' + Math.random() * 100 + '%',
-                    'bottom:' + (Math.random() * -20) + 'px',
-                    'background:' + color + (Math.random() * 0.5 + 0.3) + ')',
-                    'animation-duration:' + (Math.random() * 12 + 8) + 's',
-                    'animation-delay:' + (Math.random() * 8) + 's'
-                ].join(';');
-                container.appendChild(p);
+            var landingParticles = document.querySelector('#landing-screen #splash-particles');
+            if (landingParticles) {
+                for (var i = 0; i < 28; i++) {
+                    var p = document.createElement('div');
+                    p.className = 'splash-particle';
+                    var size = Math.random() * 4 + 2;
+                    var color = COLORS[Math.floor(Math.random() * COLORS.length)];
+                    p.style.cssText = [
+                        'width:' + size + 'px',
+                        'height:' + size + 'px',
+                        'left:' + Math.random() * 100 + '%',
+                        'bottom:' + (Math.random() * -20) + 'px',
+                        'background:' + color + (Math.random() * 0.5 + 0.3) + ')',
+                        'animation-duration:' + (Math.random() * 12 + 8) + 's',
+                        'animation-delay:' + (Math.random() * 8) + 's'
+                    ].join(';');
+                    landingParticles.appendChild(p);
+                }
             }
 
-            /* ---- Core: enter immersive mode then dismiss splash ---- */
-            function enterImmersive(mode) {
-                var splash = document.getElementById('splash-screen');
+            /* ---- Spawn particles into main menu ---- */
+            var menuParticles = document.querySelector('#splash-screen #splash-particles');
+            if (menuParticles) {
+                for (var j = 0; j < 20; j++) {
+                    var p2 = document.createElement('div');
+                    p2.className = 'splash-particle';
+                    var size2 = Math.random() * 4 + 2;
+                    var color2 = COLORS[Math.floor(Math.random() * COLORS.length)];
+                    p2.style.cssText = [
+                        'width:' + size2 + 'px',
+                        'height:' + size2 + 'px',
+                        'left:' + Math.random() * 100 + '%',
+                        'bottom:' + (Math.random() * -20) + 'px',
+                        'background:' + color2 + (Math.random() * 0.5 + 0.3) + ')',
+                        'animation-duration:' + (Math.random() * 12 + 8) + 's',
+                        'animation-delay:' + (Math.random() * 8) + 's'
+                    ].join(';');
+                    menuParticles.appendChild(p2);
+                }
+            }
+
+            /* ---- Helpers ---- */
+            function fadeOut(el, cb) {
+                el.classList.add('hidden');
+                setTimeout(function () {
+                    el.style.display = 'none';
+                    if (cb) cb();
+                }, 850);
+            }
+
+            function showMainMenu() {
+                var menu = document.getElementById('splash-screen');
+                menu.style.display = 'flex';
+                // Force reflow so transition plays
+                menu.offsetHeight;
+                menu.classList.remove('hidden');
+            }
+
+            /* ---- LANDING: Start Program → enterVR + show main menu ---- */
+            document.getElementById('btn-start-program').addEventListener('click', function () {
+                var landing = document.getElementById('landing-screen');
                 var scene = document.getElementById('main-scene');
 
-                // Reveal the canvas immediately so A-Frame can render in XR
+                // Reveal A-Frame canvas
                 if (scene) scene.style.visibility = 'visible';
 
-                // Wait for A-Frame to be ready, then request XR session
-                function tryEnter() {
+                // Trigger VR session (this click IS the required user gesture)
+                function tryEnterVR() {
                     if (typeof AFRAME === 'undefined' || !AFRAME.scenes || !AFRAME.scenes[0]) {
-                        setTimeout(tryEnter, 100);
+                        setTimeout(tryEnterVR, 100);
                         return;
                     }
-                    var aScene = AFRAME.scenes[0];
-                    try {
-                        if (mode === 'ar') {
-                            aScene.enterAR();
-                        } else {
-                            aScene.enterVR();
-                        }
-                    } catch (e) {
-                        console.warn('[Splash] enterVR/AR failed:', e);
-                    }
+                    try { AFRAME.scenes[0].enterVR(); }
+                    catch (e) { console.warn('[Landing] enterVR failed:', e); }
                 }
-                tryEnter();
+                tryEnterVR();
 
-                // Fade out and remove splash
-                splash.classList.add('hidden');
-                setTimeout(function () {
-                    if (splash.parentNode) splash.parentNode.removeChild(splash);
-                }, 900);
-            }
+                // Fade landing out, then show main menu
+                fadeOut(landing, showMainMenu);
+            });
 
-            /* ---- Button handlers ---- */
+            /* ---- MAIN MENU: Enter VR → just dismiss overlay into 3D scene ---- */
             document.getElementById('btn-enter-vr').addEventListener('click', function () {
-                enterImmersive('vr');
+                var menu = document.getElementById('splash-screen');
+                fadeOut(menu, null);
+                setTimeout(function () {
+                    if (menu.parentNode) menu.parentNode.removeChild(menu);
+                }, 900);
             });
 
-            document.getElementById('btn-enter-ar').addEventListener('click', function () {
-                enterImmersive('ar');
-            });
+            /* ---- AR disabled (SOON) — no handler needed ---- */
 
             /* ---- Settings (stub) ---- */
             document.getElementById('btn-settings').addEventListener('click', function () {
@@ -275,7 +360,7 @@
             /* ---- Help (stub) ---- */
             document.getElementById('btn-help').addEventListener('click', function () {
                 alert(
-                    'FoldMax VR Controls\n' +
+                    'FoldVR Controls\n' +
                     '\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n' +
                     'B button   \u2192  Open radial menu\n' +
                     'Left grip  \u2192  Move menu closer\n' +
@@ -289,10 +374,16 @@
                 );
             });
 
-            /* ---- Keyboard shortcut: Enter = VR ---- */
+            /* ---- Keyboard: Enter on landing = Start Program ---- */
             document.addEventListener('keydown', function (e) {
-                if (e.key === 'Enter' && document.getElementById('splash-screen')) {
-                    enterImmersive('vr');
+                if (e.key === 'Enter') {
+                    var landing = document.getElementById('landing-screen');
+                    var menu = document.getElementById('splash-screen');
+                    if (landing && !landing.classList.contains('hidden') && landing.style.display !== 'none') {
+                        document.getElementById('btn-start-program').click();
+                    } else if (menu && menu.style.display !== 'none') {
+                        document.getElementById('btn-enter-vr').click();
+                    }
                 }
             });
 
