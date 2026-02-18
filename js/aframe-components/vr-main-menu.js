@@ -38,7 +38,7 @@ AFRAME.registerComponent('vr-main-menu', {
         this.geometry = new THREE.PlaneGeometry(2.0, 2.5);
         this.mesh = new THREE.Mesh(this.geometry, this.material);
         this.mesh.visible = false;
-        this.mesh.renderOrder = 998;
+        this.mesh.renderOrder = 1100; // Above controllers (~1000) so menu is always in front
         this.mesh.userData = { isVRMainMenu: true };
 
         this.el.setObject3D('vr-main-menu', this.mesh);
@@ -105,7 +105,16 @@ AFRAME.registerComponent('vr-main-menu', {
         var env = document.querySelector('[environment-loader]');
         if (env) env.setAttribute('visible', 'false');
 
-        console.log('[VRMainMenu] Shown — protein world hidden');
+        // Disable raycasters on both hands so they can't hit the invisible molecule
+        var leftHand = document.getElementById('left-hand');
+        var rightHand = document.getElementById('right-hand');
+        if (leftHand) leftHand.setAttribute('raycaster', 'objects: #vr-main-menu');
+        if (rightHand) rightHand.setAttribute('raycaster', 'objects: #vr-main-menu');
+
+        // Disable molecule transform controls
+        if (mol) mol.removeAttribute('axis-transform-controls');
+
+        console.log('[VRMainMenu] Shown — protein world hidden, raycasters isolated');
     },
 
     hide: function () {
@@ -118,7 +127,16 @@ AFRAME.registerComponent('vr-main-menu', {
         var env = document.querySelector('[environment-loader]');
         if (env) env.setAttribute('visible', 'true');
 
-        console.log('[VRMainMenu] Hidden — protein world revealed');
+        // Restore raycasters to full scene
+        var leftHand = document.getElementById('left-hand');
+        var rightHand = document.getElementById('right-hand');
+        if (leftHand) leftHand.setAttribute('raycaster', 'objects: .clickable; far: 5');
+        if (rightHand) rightHand.setAttribute('raycaster', 'objects: .clickable; far: 5');
+
+        // Re-enable molecule transform controls
+        if (mol) mol.setAttribute('axis-transform-controls', 'hand: right');
+
+        console.log('[VRMainMenu] Hidden — protein world revealed, raycasters restored');
     },
 
     // ── Tick: update hover highlight ──────────────────────────────────────────
@@ -141,7 +159,8 @@ AFRAME.registerComponent('vr-main-menu', {
     },
 
     updateHover: function (uv) {
-        var px = uv.x * this.W;
+        // lookAt(camPos) mirrors the mesh horizontally — flip X to correct UV
+        var px = (1 - uv.x) * this.W;
         var py = (1 - uv.y) * this.H;
         var newHover = -1;
 
@@ -161,7 +180,8 @@ AFRAME.registerComponent('vr-main-menu', {
 
     // ── Click handling ────────────────────────────────────────────────────────
     handleClick: function (uv) {
-        var px = uv.x * this.W;
+        // lookAt(camPos) mirrors the mesh horizontally — flip X to correct UV
+        var px = (1 - uv.x) * this.W;
         var py = (1 - uv.y) * this.H;
 
         for (var i = 0; i < this.buttons.length; i++) {
