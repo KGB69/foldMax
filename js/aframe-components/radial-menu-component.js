@@ -17,7 +17,7 @@ AFRAME.registerComponent('radial-menu', {
         this.isLoading = false;
         this.loadingProgress = 0;
         this.loadingRotation = 0;
-        this.menuDistance = 2.4; // Distance from camera in meters (user calibrated)
+        this.menuDistance = 1.5; // Distance from camera in meters — closer than molecule (2m) so menu is always in front
 
         // Input mode state
         this.isInputMode = false;
@@ -55,14 +55,14 @@ AFRAME.registerComponent('radial-menu', {
             transparent: true,
             side: THREE.DoubleSide,
             alphaTest: 0.1,
-            depthTest: false,  // ALWAYS render on top — prevents clipping through PDB model
-            depthWrite: false  // Don't write to depth buffer so scene geometry behind is unaffected
+            depthTest: true,   // Respect depth so controllers/lasers render in front
+            depthWrite: false  // Don't write depth — prevents menu from occluding things behind it
         });
 
         var geometry = new THREE.PlaneGeometry(3, 3);
         this.mesh = new THREE.Mesh(geometry, material);
         this.mesh.visible = false;
-        this.mesh.renderOrder = 999; // Render last, always on top of all 3D geometry
+        this.mesh.renderOrder = 500; // After molecule (default 0), before controllers (A-Frame sets ~1000)
         this.mesh.userData = { isRadialMenu: true };
         this.mesh.classList = ['clickable']; // Enable VR raycaster interaction
 
@@ -1317,7 +1317,7 @@ AFRAME.registerComponent('radial-menu', {
     show: function () {
         this.isOpen = true;
         this.mesh.visible = true;
-        this.menuDistance = 2.4; // Always reset to default distance
+        this.menuDistance = 1.5; // Keep closer than molecule (2m) so depth test works correctly
 
         // Position menu in front of camera
         this.updateMenuPosition();
