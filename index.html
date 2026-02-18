@@ -42,6 +42,7 @@
     <script src="js/aframe-components/vr-console.js"></script>
     <script src="js/aframe-components/controller-radial-menu.js"></script>
     <script src="js/aframe-components/axis-transform-controls.js"></script>
+    <script src="js/aframe-components/vr-main-menu.js"></script>
 
     <script>
         // One-time initialization
@@ -213,8 +214,8 @@
         <p id="splash-footer">FoldVR &middot; Quest 3 &middot; WebXR &middot; A-Frame 1.4</p>
     </div>
     <!-- END MAIN MENU -->
-    <!-- A-Frame canvas hidden until splash dismissed -->
-    <a-scene id="main-scene" background="color: #000" style="visibility:hidden;">
+    <!-- A-Frame canvas hidden until landing dismissed -->
+    <a-scene id="main-scene" background="color: #020810" style="visibility:hidden;">
         <!-- Procedural Environment -->
         <a-entity environment-loader="timeOfDay: 0.35"></a-entity>
 
@@ -230,6 +231,34 @@
                 raycaster="objects: .clickable; far: 5"></a-entity>
             <a-entity id="right-hand" oculus-touch-controls="hand: right" laser-controls="hand: right"
                 raycaster="objects: .clickable; far: 5" controller-radial-menu></a-entity>
+        </a-entity>
+
+        <!-- VR Main Menu (3D panel, auto-shows on enter-vr) -->
+        <a-entity id="vr-main-menu" vr-main-menu class="clickable"></a-entity>
+
+        <!-- VR Menu Environment: dark sci-fi space matching splash aesthetic -->
+        <!-- Deep space sky -->
+        <a-sky color="#020810"></a-sky>
+
+        <!-- Teal grid floor -->
+        <a-entity geometry="primitive: plane; width: 80; height: 80" material="color: #020810; opacity: 1; side: double"
+            position="0 -0.05 0" rotation="-90 0 0">
+        </a-entity>
+        <a-entity geometry="primitive: plane; width: 80; height: 80"
+            material="src: #grid-tex; transparent: true; opacity: 0.18; repeat: 40 40; side: double"
+            position="0 -0.04 0" rotation="-90 0 0">
+        </a-entity>
+
+        <!-- Radial glow planes (mimic splash BG gradients) -->
+        <!-- Top teal glow -->
+        <a-entity geometry="primitive: plane; width: 30; height: 20"
+            material="color: #00c8b4; transparent: true; opacity: 0.06; side: double; shader: flat" position="0 8 -10"
+            rotation="-30 0 0">
+        </a-entity>
+        <!-- Bottom-right purple glow -->
+        <a-entity geometry="primitive: plane; width: 20; height: 20"
+            material="color: #503cdc; transparent: true; opacity: 0.05; side: double; shader: flat" position="8 2 -12"
+            rotation="-10 -20 0">
         </a-entity>
 
         <!-- Radial Menu -->
@@ -280,28 +309,7 @@
                 }
             }
 
-            /* ---- Spawn particles into main menu ---- */
-            var menuParticles = document.querySelector('#splash-screen #splash-particles');
-            if (menuParticles) {
-                for (var j = 0; j < 20; j++) {
-                    var p2 = document.createElement('div');
-                    p2.className = 'splash-particle';
-                    var size2 = Math.random() * 4 + 2;
-                    var color2 = COLORS[Math.floor(Math.random() * COLORS.length)];
-                    p2.style.cssText = [
-                        'width:' + size2 + 'px',
-                        'height:' + size2 + 'px',
-                        'left:' + Math.random() * 100 + '%',
-                        'bottom:' + (Math.random() * -20) + 'px',
-                        'background:' + color2 + (Math.random() * 0.5 + 0.3) + ')',
-                        'animation-duration:' + (Math.random() * 12 + 8) + 's',
-                        'animation-delay:' + (Math.random() * 8) + 's'
-                    ].join(';');
-                    menuParticles.appendChild(p2);
-                }
-            }
-
-            /* ---- Helpers ---- */
+            /* ---- Helper ---- */
             function fadeOut(el, cb) {
                 el.classList.add('hidden');
                 setTimeout(function () {
@@ -310,23 +318,14 @@
                 }, 850);
             }
 
-            function showMainMenu() {
-                var menu = document.getElementById('splash-screen');
-                menu.style.display = 'flex';
-                // Force reflow so transition plays
-                menu.offsetHeight;
-                menu.classList.remove('hidden');
-            }
-
-            /* ---- LANDING: Start Program → enterVR + show main menu ---- */
+            /* ---- LANDING: Start Program → enterVR ---- */
+            /* The 3D vr-main-menu component auto-shows on the scene's enter-vr event */
             document.getElementById('btn-start-program').addEventListener('click', function () {
                 var landing = document.getElementById('landing-screen');
                 var scene = document.getElementById('main-scene');
 
-                // Reveal A-Frame canvas
                 if (scene) scene.style.visibility = 'visible';
 
-                // Trigger VR session (this click IS the required user gesture)
                 function tryEnterVR() {
                     if (typeof AFRAME === 'undefined' || !AFRAME.scenes || !AFRAME.scenes[0]) {
                         setTimeout(tryEnterVR, 100);
@@ -337,52 +336,15 @@
                 }
                 tryEnterVR();
 
-                // Fade landing out, then show main menu
-                fadeOut(landing, showMainMenu);
+                fadeOut(landing, null);
             });
 
-            /* ---- MAIN MENU: Enter VR → just dismiss overlay into 3D scene ---- */
-            document.getElementById('btn-enter-vr').addEventListener('click', function () {
-                var menu = document.getElementById('splash-screen');
-                fadeOut(menu, null);
-                setTimeout(function () {
-                    if (menu.parentNode) menu.parentNode.removeChild(menu);
-                }, 900);
-            });
-
-            /* ---- AR disabled (SOON) — no handler needed ---- */
-
-            /* ---- Settings (stub) ---- */
-            document.getElementById('btn-settings').addEventListener('click', function () {
-                alert('Settings panel coming soon!\n\nFor now, use the in-VR radial menu (B button) to adjust settings.');
-            });
-
-            /* ---- Help (stub) ---- */
-            document.getElementById('btn-help').addEventListener('click', function () {
-                alert(
-                    'FoldVR Controls\n' +
-                    '\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n' +
-                    'B button   \u2192  Open radial menu\n' +
-                    'Left grip  \u2192  Move menu closer\n' +
-                    'Right grip \u2192  Move menu farther\n' +
-                    'Trigger    \u2192  Select / click\n' +
-                    'Thumbstick \u2192  Move around\n\n' +
-                    'Desktop:\n' +
-                    'M key  \u2192  Toggle menu\n' +
-                    'WASD   \u2192  Move\n' +
-                    'Mouse  \u2192  Look around'
-                );
-            });
-
-            /* ---- Keyboard: Enter on landing = Start Program ---- */
+            /* ---- Keyboard: Enter = Start Program ---- */
             document.addEventListener('keydown', function (e) {
                 if (e.key === 'Enter') {
                     var landing = document.getElementById('landing-screen');
-                    var menu = document.getElementById('splash-screen');
-                    if (landing && !landing.classList.contains('hidden') && landing.style.display !== 'none') {
+                    if (landing && landing.style.display !== 'none' && !landing.classList.contains('hidden')) {
                         document.getElementById('btn-start-program').click();
-                    } else if (menu && menu.style.display !== 'none') {
-                        document.getElementById('btn-enter-vr').click();
                     }
                 }
             });
