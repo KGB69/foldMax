@@ -59,7 +59,7 @@ AFRAME.registerComponent('radial-menu', {
             depthWrite: false  // Don't write depth — prevents menu from occluding things behind it
         });
 
-        var geometry = new THREE.PlaneGeometry(3, 3);
+        var geometry = new THREE.PlaneGeometry(1.95, 1.95); // 35% smaller than original 3x3
         this.mesh = new THREE.Mesh(geometry, material);
         this.mesh.visible = false;
         this.mesh.renderOrder = 500; // After molecule (default 0), before controllers (A-Frame sets ~1000)
