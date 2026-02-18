@@ -98,13 +98,27 @@ AFRAME.registerComponent('vr-main-menu', {
         this.mesh.visible = true;
         this.updatePosition();
         this.draw();
-        console.log('[VRMainMenu] Shown');
+
+        // Hide the protein world so the menu has its own isolated space
+        var mol = document.getElementById('molecule-container');
+        if (mol) mol.setAttribute('visible', 'false');
+        var env = document.querySelector('[environment-loader]');
+        if (env) env.setAttribute('visible', 'false');
+
+        console.log('[VRMainMenu] Shown — protein world hidden');
     },
 
     hide: function () {
         this.isVisible = false;
         this.mesh.visible = false;
-        console.log('[VRMainMenu] Hidden');
+
+        // Reveal the protein world
+        var mol = document.getElementById('molecule-container');
+        if (mol) mol.setAttribute('visible', 'true');
+        var env = document.querySelector('[environment-loader]');
+        if (env) env.setAttribute('visible', 'true');
+
+        console.log('[VRMainMenu] Hidden — protein world revealed');
     },
 
     // ── Tick: update hover highlight ──────────────────────────────────────────
@@ -246,9 +260,41 @@ AFRAME.registerComponent('vr-main-menu', {
     },
 
     drawPanel: function (ctx, W, H) {
-        // Outer rounded rect background
         var r = 40;
         ctx.save();
+
+        // ── Step 1: Full canvas solid black base so nothing bleeds through ──
+        ctx.fillStyle = 'rgba(3, 7, 14, 1.0)';
+        ctx.fillRect(0, 0, W, H);
+
+        // ── Step 2: Teal top radial glow (splash BG aesthetic) ──
+        var gTop = ctx.createRadialGradient(W / 2, 0, 0, W / 2, 0, W * 0.85);
+        gTop.addColorStop(0, 'rgba(0,200,180,0.22)');
+        gTop.addColorStop(1, 'transparent');
+        ctx.fillStyle = gTop;
+        ctx.fillRect(0, 0, W, H);
+
+        // ── Step 3: Purple bottom-right glow ──
+        var gBR = ctx.createRadialGradient(W, H, 0, W, H, W * 0.75);
+        gBR.addColorStop(0, 'rgba(80,60,220,0.18)');
+        gBR.addColorStop(1, 'transparent');
+        ctx.fillStyle = gBR;
+        ctx.fillRect(0, 0, W, H);
+
+        // ── Step 4: Teal grid lines ──
+        ctx.globalAlpha = 0.10;
+        ctx.strokeStyle = 'rgba(0,220,200,1)';
+        ctx.lineWidth = 1;
+        var gridSize = 60;
+        for (var gx = 0; gx < W; gx += gridSize) {
+            ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, H); ctx.stroke();
+        }
+        for (var gy = 0; gy < H; gy += gridSize) {
+            ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(W, gy); ctx.stroke();
+        }
+        ctx.globalAlpha = 1;
+
+        // ── Step 5: Rounded rect panel on top (slightly lighter than base) ──
         ctx.beginPath();
         ctx.moveTo(r, 0);
         ctx.lineTo(W - r, 0);
@@ -261,49 +307,22 @@ AFRAME.registerComponent('vr-main-menu', {
         ctx.quadraticCurveTo(0, 0, r, 0);
         ctx.closePath();
 
-        // Dark glass fill
-        ctx.fillStyle = 'rgba(5, 10, 18, 0.92)';
+        // Slightly lighter glass layer over the base
+        ctx.fillStyle = 'rgba(8, 18, 32, 0.55)';
         ctx.fill();
 
-        // Teal border glow
-        ctx.strokeStyle = 'rgba(0,220,200,0.28)';
-        ctx.lineWidth = 2;
+        // Teal border glow — stronger
+        ctx.strokeStyle = 'rgba(0,220,200,0.55)';
+        ctx.lineWidth = 2.5;
         ctx.stroke();
 
-        // Inner highlight line at top
+        // Inner top highlight
         ctx.beginPath();
         ctx.moveTo(r + 20, 1.5);
         ctx.lineTo(W - r - 20, 1.5);
-        ctx.strokeStyle = 'rgba(255,255,255,0.07)';
+        ctx.strokeStyle = 'rgba(255,255,255,0.12)';
         ctx.lineWidth = 1.5;
         ctx.stroke();
-
-        // Radial glow top-center (mimics splash BG gradient)
-        var gTop = ctx.createRadialGradient(W / 2, 0, 0, W / 2, 0, W * 0.7);
-        gTop.addColorStop(0, 'rgba(0,200,180,0.12)');
-        gTop.addColorStop(1, 'transparent');
-        ctx.fillStyle = gTop;
-        ctx.fill();
-
-        // Radial glow bottom-right
-        var gBR = ctx.createRadialGradient(W, H, 0, W, H, W * 0.6);
-        gBR.addColorStop(0, 'rgba(80,60,220,0.10)');
-        gBR.addColorStop(1, 'transparent');
-        ctx.fillStyle = gBR;
-        ctx.fill();
-
-        // Grid lines (mimics splash BG grid)
-        ctx.globalAlpha = 0.06;
-        ctx.strokeStyle = 'rgba(0,220,200,1)';
-        ctx.lineWidth = 1;
-        var gridSize = 60;
-        for (var gx = 0; gx < W; gx += gridSize) {
-            ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, H); ctx.stroke();
-        }
-        for (var gy = 0; gy < H; gy += gridSize) {
-            ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(W, gy); ctx.stroke();
-        }
-        ctx.globalAlpha = 1;
 
         ctx.restore();
     },
