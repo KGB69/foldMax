@@ -107,15 +107,31 @@ AFRAME.registerComponent('vr-main-menu', {
         var mol = document.getElementById('molecule-container');
         if (mol) mol.setAttribute('visible', 'false');
 
-        // Hide environment meshes directly in Three.js scene
-        // (environment-loader adds to scene root, not entity object3D)
+        // Hide environment meshes (added directly to Three.js scene root)
         this._hideEnvMeshes();
 
-        // Restrict raycasters to menu panel only
+        // Hide other scene UI entities
+        var hideIds = ['radial-menu'];
+        this._hiddenEntities = [];
+        for (var i = 0; i < hideIds.length; i++) {
+            var ent = document.getElementById(hideIds[i]);
+            if (ent) {
+                ent.setAttribute('visible', 'false');
+                this._hiddenEntities.push(ent);
+            }
+        }
+        // Hide vr-debug-panel and vr-console by component selector
+        var debugPanels = document.querySelectorAll('[vr-debug-panel], [vr-console]');
+        for (var d = 0; d < debugPanels.length; d++) {
+            debugPanels[d].setAttribute('visible', 'false');
+            this._hiddenEntities.push(debugPanels[d]);
+        }
+
+        // Restrict raycasters to menu panel only + enable UV computation
         var leftHand = document.getElementById('left-hand');
         var rightHand = document.getElementById('right-hand');
-        if (leftHand) leftHand.setAttribute('raycaster', 'objects: #vr-main-menu');
-        if (rightHand) rightHand.setAttribute('raycaster', 'objects: #vr-main-menu');
+        if (leftHand) leftHand.setAttribute('raycaster', 'objects: #vr-main-menu; far: 10; computeIntersectionUVs: true');
+        if (rightHand) rightHand.setAttribute('raycaster', 'objects: #vr-main-menu; far: 10; computeIntersectionUVs: true');
 
         // Disable molecule transform controls
         if (mol) mol.removeAttribute('axis-transform-controls');
@@ -162,6 +178,14 @@ AFRAME.registerComponent('vr-main-menu', {
 
         // Restore environment meshes
         this._showEnvMeshes();
+
+        // Restore hidden entities
+        if (this._hiddenEntities) {
+            for (var i = 0; i < this._hiddenEntities.length; i++) {
+                this._hiddenEntities[i].setAttribute('visible', 'true');
+            }
+            this._hiddenEntities = [];
+        }
 
         // Restore raycasters to full scene
         var leftHand = document.getElementById('left-hand');
