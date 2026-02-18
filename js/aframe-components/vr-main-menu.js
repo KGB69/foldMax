@@ -71,7 +71,87 @@ AFRAME.registerComponent('vr-main-menu', {
         });
 
         this.draw();
+
+        // Create menu environment (skybox + particles)
+        this._createMenuEnvironment();
+
         console.log('[VRMainMenu] Initialized');
+    },
+
+    _createMenuEnvironment: function () {
+        var scene = this.el.sceneEl.object3D;
+
+        // ── Dark gradient sky sphere ──
+        var skyGeo = new THREE.SphereGeometry(50, 32, 16);
+        var skyVert = [
+            'varying vec3 vWorldPos;',
+            'void main() {',
+            '  vec4 wp = modelMatrix * vec4(position, 1.0);',
+            '  vWorldPos = wp.xyz;',
+            '  gl_Position = projectionMatrix * viewMatrix * wp;',
+            '}'
+        ].join('\n');
+        var skyFrag = [
+            'varying vec3 vWorldPos;',
+            'void main() {',
+            '  float h = normalize(vWorldPos).y;',
+            '  vec3 top    = vec3(0.01, 0.02, 0.06);',
+            '  vec3 mid    = vec3(0.02, 0.05, 0.10);',
+            '  vec3 bottom = vec3(0.01, 0.01, 0.03);',
+            '  vec3 col = h > 0.0 ? mix(mid, top, h) : mix(mid, bottom, -h);',
+            '  // Subtle teal horizon glow',
+            '  float horizon = 1.0 - abs(h);',
+            '  col += vec3(0.0, 0.12, 0.10) * pow(horizon, 6.0);',
+            '  gl_FragColor = vec4(col, 1.0);',
+            '}'
+        ].join('\n');
+        var skyMat = new THREE.ShaderMaterial({
+            vertexShader: skyVert,
+            fragmentShader: skyFrag,
+            side: THREE.BackSide,
+            depthWrite: false
+        });
+        this._menuSky = new THREE.Mesh(skyGeo, skyMat);
+        this._menuSky.renderOrder = -1;
+        this._menuSky.visible = false;
+        scene.add(this._menuSky);
+
+        // ── Floating particles ──
+        var count = 200;
+        var positions = new Float32Array(count * 3);
+        var colors = new Float32Array(count * 3);
+        var sizes = new Float32Array(count);
+        for (var i = 0; i < count; i++) {
+            positions[i * 3] = (Math.random() - 0.5) * 30;
+            positions[i * 3 + 1] = (Math.random() - 0.5) * 20;
+            positions[i * 3 + 2] = (Math.random() - 0.5) * 30;
+            // Teal to cyan color range
+            var t = Math.random();
+            colors[i * 3] = t * 0.1;              // R
+            colors[i * 3 + 1] = 0.4 + t * 0.4;       // G
+            colors[i * 3 + 2] = 0.5 + t * 0.3;       // B
+            sizes[i] = Math.random() * 3 + 1;
+        }
+        var partGeo = new THREE.BufferGeometry();
+        partGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        partGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+        partGeo.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+
+        var partMat = new THREE.PointsMaterial({
+            size: 0.06,
+            vertexColors: true,
+            transparent: true,
+            opacity: 0.6,
+            sizeAttenuation: true,
+            depthWrite: false,
+            blending: THREE.AdditiveBlending
+        });
+        this._menuParticles = new THREE.Points(partGeo, partMat);
+        this._menuParticles.visible = false;
+        scene.add(this._menuParticles);
+
+        // Store original positions for animation
+        this._particleBasePos = new Float32Array(positions);
     },
 
     // ── Positioning ──────────────────────────────────────────────────────────
@@ -137,6 +217,10 @@ AFRAME.registerComponent('vr-main-menu', {
         if (mol) mol.removeAttribute('axis-transform-controls');
 
         console.log('[VRMainMenu] Shown');
+
+        // Show menu environment
+        if (this._menuSky) this._menuSky.visible = true;
+        if (this._menuParticles) this._menuParticles.visible = true;
     },
 
     _hideEnvMeshes: function () {
@@ -197,6 +281,10 @@ AFRAME.registerComponent('vr-main-menu', {
         if (mol) mol.setAttribute('axis-transform-controls', 'hand: right');
 
         console.log('[VRMainMenu] Hidden');
+
+        // Hide menu environment
+        if (this._menuSky) this._menuSky.visible = false;
+        if (this._menuParticles) this._menuParticles.visible = false;
     },
 
     // ── Tick: poll raycasters for hover UV ───────────────────────────────────
@@ -227,6 +315,19 @@ AFRAME.registerComponent('vr-main-menu', {
         } else if (this.hovered !== -1) {
             this.hovered = -1;
             this.draw();
+        }
+
+        // Animate menu particles
+        if (this._menuParticles && this._menuParticles.visible && this._particleBasePos) {
+            var posAttr = this._menuParticles.geometry.getAttribute('position');
+            var t = performance.now() * 0.0003;
+            for (var p = 0; p < posAttr.count; p++) {
+                var baseIdx = p * 3;
+                posAttr.array[baseIdx] = this._particleBasePos[baseIdx] + Math.sin(t + p * 0.7) * 0.3;
+                posAttr.array[baseIdx + 1] = this._particleBasePos[baseIdx + 1] + Math.sin(t * 0.7 + p * 1.1) * 0.2;
+                posAttr.array[baseIdx + 2] = this._particleBasePos[baseIdx + 2] + Math.cos(t * 0.5 + p * 0.9) * 0.3;
+            }
+            posAttr.needsUpdate = true;
         }
     },
 

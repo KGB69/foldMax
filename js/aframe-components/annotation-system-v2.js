@@ -360,6 +360,9 @@ AFRAME.registerComponent('annotation-raycaster', {
     },
 
     tick: function (t, dt) {
+        // Suppress annotations while VR main menu is open
+        if (window.vrMenuOpen) return;
+
         // Custom THREE.js Raycaster for actual pointer detection
         // This bypasses A-Frame's raycaster which only works on entities
 
@@ -441,6 +444,9 @@ AFRAME.registerComponent('annotation-raycaster', {
     },
 
     onIntersection: function (evt) {
+        // Suppress annotations while VR main menu is open
+        if (window.vrMenuOpen) return;
+
         var raycaster = this.el.components.raycaster;
         var intersection = raycaster.getIntersection(evt.detail.els[0]);
         if (!intersection) return;
