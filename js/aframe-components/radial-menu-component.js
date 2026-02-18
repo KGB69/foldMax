@@ -25,8 +25,8 @@ AFRAME.registerComponent('radial-menu', {
         this.maxInputLength = 4;
 
         // Floor collision prevention
-        this.floorLevel = 0.7; // Match player height
-        this.menuHeightOffset = 1.5; // Half of menu height (3m plane / 2)
+        this.floorLevel = 0.1;        // Was: 0.7
+        this.menuHeightOffset = 0.9;  // Was: 1.5 — minMenuY now ~1.0m (was 2.2m)
         this.minMenuY = this.floorLevel + this.menuHeightOffset;
 
         // Calibration Mode
