@@ -54,6 +54,9 @@ AFRAME.registerComponent('annotation-raycaster', {
     },
 
     onIntersection: function (evt) {
+        // Suppress atom annotations while the VR main menu is open
+        if (window.vrMenuOpen) return;
+
         var raycaster = this.el.components.raycaster;
         var intersection = raycaster.getIntersection(evt.detail.els[0]);
 

@@ -30,8 +30,8 @@ AFRAME.registerComponent('vr-main-menu', {
             map: this.texture,
             transparent: true,
             side: THREE.DoubleSide,
-            depthTest: false,
-            depthWrite: false
+            depthTest: true,   // Participate in depth so menu occludes controllers
+            depthWrite: true   // Write depth so nothing renders over the menu
         });
 
         // Geometry — portrait panel, 2.0m wide × 2.5m tall
@@ -99,13 +99,18 @@ AFRAME.registerComponent('vr-main-menu', {
         this.updatePosition();
         this.draw();
 
-        // Hide the protein world so the menu has its own isolated space
+        // Global flag so annotation-raycaster can bail out
+        window.vrMenuOpen = true;
+
+        // Hide molecule entity
         var mol = document.getElementById('molecule-container');
         if (mol) mol.setAttribute('visible', 'false');
-        var env = document.querySelector('[environment-loader]');
-        if (env) env.setAttribute('visible', 'false');
 
-        // Disable raycasters on both hands so they can't hit the invisible molecule
+        // Hide environment meshes directly in Three.js scene
+        // (environment-loader adds to scene root, not entity object3D)
+        this._hideEnvMeshes();
+
+        // Restrict raycasters to menu panel only
         var leftHand = document.getElementById('left-hand');
         var rightHand = document.getElementById('right-hand');
         if (leftHand) leftHand.setAttribute('raycaster', 'objects: #vr-main-menu');
@@ -114,18 +119,48 @@ AFRAME.registerComponent('vr-main-menu', {
         // Disable molecule transform controls
         if (mol) mol.removeAttribute('axis-transform-controls');
 
-        console.log('[VRMainMenu] Shown — protein world hidden, raycasters isolated');
+        console.log('[VRMainMenu] Shown');
+    },
+
+    _hideEnvMeshes: function () {
+        var scene = this.el.sceneEl.object3D;
+        this._hiddenEnvObjects = [];
+        var self = this;
+        scene.traverse(function (obj) {
+            // Hide ShaderMaterial meshes (sky + ground) and lights added by environment-loader
+            // but NOT our menu mesh or A-Frame entity wrappers
+            if (!obj.isLight && !obj.isMesh) return;
+            if (obj === self.mesh) return;
+            // Skip A-Frame entity object3Ds (they have el property)
+            if (obj.el) return;
+            if (obj.visible) {
+                obj.visible = false;
+                self._hiddenEnvObjects.push(obj);
+            }
+        });
+    },
+
+    _showEnvMeshes: function () {
+        if (!this._hiddenEnvObjects) return;
+        for (var i = 0; i < this._hiddenEnvObjects.length; i++) {
+            this._hiddenEnvObjects[i].visible = true;
+        }
+        this._hiddenEnvObjects = [];
     },
 
     hide: function () {
         this.isVisible = false;
         this.mesh.visible = false;
 
-        // Reveal the protein world
+        // Clear global flag
+        window.vrMenuOpen = false;
+
+        // Reveal molecule entity
         var mol = document.getElementById('molecule-container');
         if (mol) mol.setAttribute('visible', 'true');
-        var env = document.querySelector('[environment-loader]');
-        if (env) env.setAttribute('visible', 'true');
+
+        // Restore environment meshes
+        this._showEnvMeshes();
 
         // Restore raycasters to full scene
         var leftHand = document.getElementById('left-hand');
@@ -136,7 +171,7 @@ AFRAME.registerComponent('vr-main-menu', {
         // Re-enable molecule transform controls
         if (mol) mol.setAttribute('axis-transform-controls', 'hand: right');
 
-        console.log('[VRMainMenu] Hidden — protein world revealed, raycasters restored');
+        console.log('[VRMainMenu] Hidden');
     },
 
     // ── Tick: update hover highlight ──────────────────────────────────────────
